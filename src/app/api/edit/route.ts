@@ -4,11 +4,21 @@ const KIE_API_BASE = "https://api.kie.ai/api/v1";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { prompt, imageUrl, aspectRatio, quality } = body;
+  const { prompt, imageUrls, aspectRatio, quality } = body as {
+    prompt: string;
+    imageUrls?: string[];
+    aspectRatio?: string;
+    quality?: string;
+    keepPose?: boolean;
+    keepLighting?: boolean;
+    keepColors?: boolean;
+  };
 
-  // Use mock when no API key is configured or when imageUrl is a data URL
-  // (KIE API requires a publicly accessible image URL)
-  if (!process.env.KIE_API_KEY || !imageUrl || imageUrl.startsWith("data:")) {
+  // Public URLs that the KIE API can fetch (filter out local data: URIs)
+  const publicUrls = (imageUrls ?? []).filter((u) => !u.startsWith("data:"));
+
+  // Use mock when no API key is configured or when there are no public image URLs
+  if (!process.env.KIE_API_KEY || publicUrls.length === 0) {
     const seed = Math.floor(Math.random() * 900) + 100;
     const image = {
       id: `edit-${Date.now()}`,
@@ -35,7 +45,7 @@ export async function POST(request: NextRequest) {
       callBackUrl: process.env.KIE_CALLBACK_URL,
       input: {
         prompt,
-        image_urls: [imageUrl],
+        image_urls: publicUrls,
         aspect_ratio: aspectRatio ?? "1:1",
         quality: quality ?? "basic",
       },

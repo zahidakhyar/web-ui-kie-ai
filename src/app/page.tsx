@@ -15,6 +15,8 @@ interface GeneratedImage {
   src: string;
 }
 
+const MAX_REFERENCE_IMAGES = 14;
+
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<Tab>("text-to-image");
 
@@ -28,7 +30,9 @@ export default function HomePage() {
 
   // Image edit state
   const [editPrompt, setEditPrompt] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [editAspectRatio, setEditAspectRatio] = useState<AspectRatio>("1:1");
+  const [editQuality, setEditQuality] = useState<Quality>("basic");
   const [keepPose, setKeepPose] = useState(false);
   const [keepLighting, setKeepLighting] = useState(false);
   const [keepColors, setKeepColors] = useState(false);
@@ -46,6 +50,8 @@ export default function HomePage() {
     setLoading(true);
     setGeneratedImages([]);
     setStatusMessage("Submitting request...");
+
+    let es: EventSource | null = null;
 
     try {
       let taskId: string | null = null;
@@ -85,12 +91,12 @@ export default function HomePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: editPrompt,
-            imageUrl: uploadedImage,
+            imageUrls: uploadedImages,
             keepPose,
             keepLighting,
             keepColors,
-            aspectRatio,
-            quality,
+            aspectRatio: editAspectRatio,
+            quality: editQuality,
           }),
         });
         const data = await res.json();
@@ -108,57 +114,129 @@ export default function HomePage() {
 
       if (!taskId) return;
 
-      // Poll task status until done (max 3 minutes, 3s interval)
       setStatusMessage("Checking status...");
-      const maxAttempts = 60;
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+      let resolved = false;
 
-        const statusRes = await fetch(`/api/status?taskId=${encodeURIComponent(taskId)}`);
-        const statusData = await statusRes.json();
-
-        if (statusData.state === "success") {
-          setGeneratedImages(
-            (statusData.resultUrls as string[]).map((url, i) => ({
-              id: `gen-${Date.now()}-${i}`,
-              src: url,
-            }))
-          );
-          return;
-        }
-
-        if (statusData.state === "fail") {
-          setStatusMessage(`Generation failed: ${statusData.failMsg ?? "unknown error"}`);
-          return;
-        }
-
-        setStatusMessage(
-          statusData.state === "queuing"
-            ? "Queued, waiting..."
-            : statusData.state === "waiting"
-            ? "Waiting..."
-            : "Generating..."
-        );
+      // Connect SSE for realtime callback-driven updates (/api/sse → /api/callback)
+      if (typeof window !== "undefined" && "EventSource" in window) {
+        es = new EventSource(`/api/sse?taskId=${encodeURIComponent(taskId)}`);
+        es.onmessage = (e) => {
+          if (resolved) return;
+          const result = JSON.parse(e.data as string) as {
+            state: string;
+            resultUrls?: string[];
+            failMsg?: string;
+          };
+          // Ignore keepalive or intermediate events
+          if (!["success", "fail", "timeout"].includes(result.state)) return;
+          resolved = true;
+          es?.close();
+          if (result.state === "success") {
+            setGeneratedImages(
+              (result.resultUrls ?? []).map((url, i) => ({
+                id: `gen-${Date.now()}-${i}`,
+                src: url,
+              }))
+            );
+          } else if (result.state === "fail") {
+            setStatusMessage(`Generation failed: ${result.failMsg ?? "unknown error"}`);
+          } else {
+            setStatusMessage("Request timed out. Please try again.");
+          }
+          setLoading(false);
+        };
+        es.onerror = () => es?.close();
       }
 
-      setStatusMessage("Request timed out. Please try again.");
+      // Poll /api/status every 4 s for live status text + backup result delivery
+      const maxAttempts = 45; // ~3 minutes
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((r) => setTimeout(r, 4000));
+        if (resolved) break;
+
+        try {
+          const statusRes = await fetch(
+            `/api/status?taskId=${encodeURIComponent(taskId)}`
+          );
+          const statusData = (await statusRes.json()) as {
+            state?: string;
+            resultUrls?: string[];
+            failMsg?: string;
+          };
+
+          if (statusData.state === "success" && !resolved) {
+            resolved = true;
+            es?.close();
+            setGeneratedImages(
+              (statusData.resultUrls ?? []).map((url, i) => ({
+                id: `gen-${Date.now()}-${i}`,
+                src: url,
+              }))
+            );
+            return;
+          }
+
+          if (statusData.state === "fail" && !resolved) {
+            resolved = true;
+            es?.close();
+            setStatusMessage(
+              `Generation failed: ${statusData.failMsg ?? "unknown error"}`
+            );
+            return;
+          }
+
+          if (!resolved) {
+            setStatusMessage(
+              statusData.state === "queuing"
+                ? "Queued, waiting..."
+                : statusData.state === "waiting"
+                ? "Waiting..."
+                : "Generating..."
+            );
+          }
+        } catch {
+          // ignore transient poll errors
+        }
+      }
+
+      if (!resolved) {
+        setStatusMessage("Request timed out. Please try again.");
+      }
     } finally {
+      es?.close();
       setLoading(false);
     }
   };
 
-  const handleFileChange = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => setUploadedImage(e.target?.result as string);
-    reader.readAsDataURL(file);
-  };
+  const handleFilesChange = useCallback((files: File[]) => {
+    const remaining = MAX_REFERENCE_IMAGES - uploadedImages.length;
+    const toProcess = files.slice(0, remaining);
+    toProcess.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) =>
+        setUploadedImages((prev) =>
+          prev.length < MAX_REFERENCE_IMAGES
+            ? [...prev, e.target?.result as string]
+            : prev
+        );
+      reader.readAsDataURL(file);
+    });
+  }, [uploadedImages.length]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) handleFileChange(file);
-  }, []);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const files = Array.from(e.dataTransfer.files).filter((f) =>
+        f.type.startsWith("image/")
+      );
+      handleFilesChange(files);
+    },
+    [handleFilesChange]
+  );
+
+  const removeUploadedImage = (idx: number) =>
+    setUploadedImages((prev) => prev.filter((_, i) => i !== idx));
 
   const aspectRatios: AspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
   const qualities: { value: Quality; label: string }[] = [
@@ -281,52 +359,85 @@ export default function HomePage() {
             </>
           ) : (
             <>
-              {/* Upload dropzone */}
+              {/* Multi-image upload */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-200">Reference Image</label>
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  onClick={() => document.getElementById("file-upload")?.click()}
-                  className={`relative flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all ${
-                    dragOver
-                      ? "border-violet-500 bg-violet-500/10"
-                      : uploadedImage
-                      ? "border-violet-500/50 bg-violet-500/5"
-                      : "border-white/20 bg-white/5 hover:border-violet-500/50 hover:bg-white/8"
-                  }`}
-                >
-                  {uploadedImage ? (
-                    <div className="relative h-40 w-40">
-                      <Image src={uploadedImage} alt="Uploaded" fill className="rounded-lg object-cover" />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setUploadedImage(null); }}
-                        className="absolute -right-2 -top-2 rounded-full bg-red-500 p-0.5 text-white hover:bg-red-600"
+                <label className="mb-2 flex items-center justify-between text-sm font-medium text-gray-200">
+                  <span>Reference Images</span>
+                  <span className="text-xs text-gray-500">
+                    {uploadedImages.length}/{MAX_REFERENCE_IMAGES} images
+                  </span>
+                </label>
+
+                {/* Thumbnail grid */}
+                {uploadedImages.length > 0 && (
+                  <div className="mb-3 grid grid-cols-4 gap-2 sm:grid-cols-5">
+                    {uploadedImages.map((src, idx) => (
+                      <div
+                        key={idx}
+                        className="group relative aspect-square overflow-hidden rounded-lg border border-white/10"
                       >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <Image
+                          src={src}
+                          alt={`Reference ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          onClick={() => removeUploadedImage(idx)}
+                          className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity hover:bg-red-500 group-hover:opacity-100"
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    {uploadedImages.length < MAX_REFERENCE_IMAGES && (
+                      <button
+                        onClick={() => document.getElementById("file-upload")?.click()}
+                        className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-white/20 text-gray-500 transition-all hover:border-violet-500/50 hover:text-violet-400"
+                      >
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                         </svg>
                       </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Drop zone */}
+                {uploadedImages.length === 0 && (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById("file-upload")?.click()}
+                    className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all ${
+                      dragOver
+                        ? "border-violet-500 bg-violet-500/10"
+                        : "border-white/20 bg-white/5 hover:border-violet-500/50"
+                    }`}
+                  >
+                    <svg className="h-10 w-10 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div className="text-center">
+                      <p className="text-sm text-gray-400">Drag & drop or click to upload</p>
+                      <p className="mt-1 text-xs text-gray-600">PNG, JPG, WebP up to 10MB · up to {MAX_REFERENCE_IMAGES} images</p>
                     </div>
-                  ) : (
-                    <>
-                      <svg className="h-10 w-10 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <div className="text-center">
-                        <p className="text-sm text-gray-400">Drag & drop or click to upload</p>
-                        <p className="mt-1 text-xs text-gray-600">PNG, JPG, WebP up to 10MB</p>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  </div>
+                )}
+
                 <input
                   id="file-upload"
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
+                  onChange={(e) =>
+                    e.target.files &&
+                    handleFilesChange(Array.from(e.target.files))
+                  }
                 />
               </div>
 
@@ -336,6 +447,46 @@ export default function HomePage() {
                 label="Edit Instructions"
                 placeholder="Change the background to a magical forest, make it look like sunset..."
               />
+
+              {/* Aspect Ratio */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-200">Aspect Ratio</label>
+                <div className="flex flex-wrap gap-2">
+                  {aspectRatios.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setEditAspectRatio(r)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
+                        editAspectRatio === r
+                          ? "border-violet-500 bg-violet-600/30 text-violet-300"
+                          : "border-white/10 bg-white/5 text-gray-400 hover:border-violet-500/40"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-200">Quality</label>
+                <div className="flex flex-wrap gap-2">
+                  {qualities.map((q) => (
+                    <button
+                      key={q.value}
+                      onClick={() => setEditQuality(q.value)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
+                        editQuality === q.value
+                          ? "border-violet-500 bg-violet-600/30 text-violet-300"
+                          : "border-white/10 bg-white/5 text-gray-400 hover:border-violet-500/40"
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Keep options */}
               <div>
