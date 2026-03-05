@@ -312,7 +312,7 @@ export default function HomePage() {
                   <ToggleGroup
                     type="single"
                     value={aspectRatio}
-                    onValueChange={(v) => { if (v) setAspectRatio(v as AspectRatio); }}
+                    onValueChange={(v) => v && setAspectRatio(v as AspectRatio)}
                     className="flex flex-wrap gap-2 justify-start"
                   >
                     {aspectRatios.map((r) => (
@@ -329,7 +329,7 @@ export default function HomePage() {
                   <ToggleGroup
                     type="single"
                     value={quality}
-                    onValueChange={(v) => { if (v) setQuality(v as Quality); }}
+                    onValueChange={(v) => v && setQuality(v as Quality)}
                     className="flex flex-wrap gap-2 justify-start"
                   >
                     {qualities.map((q) => (
@@ -348,7 +348,7 @@ export default function HomePage() {
                   <ToggleGroup
                     type="single"
                     value={String(imageCount)}
-                    onValueChange={(v) => { if (v) setImageCount(Number(v) as ImageCount); }}
+                    onValueChange={(v) => v && setImageCount(Number(v) as ImageCount)}
                     className="flex gap-2 justify-start"
                   >
                     {imageCounts.map((n) => (
@@ -453,7 +453,7 @@ export default function HomePage() {
                   <ToggleGroup
                     type="single"
                     value={editAspectRatio}
-                    onValueChange={(v) => { if (v) setEditAspectRatio(v as AspectRatio); }}
+                    onValueChange={(v) => v && setEditAspectRatio(v as AspectRatio)}
                     className="flex flex-wrap gap-2 justify-start"
                   >
                     {aspectRatios.map((r) => (
@@ -470,7 +470,7 @@ export default function HomePage() {
                   <ToggleGroup
                     type="single"
                     value={editQuality}
-                    onValueChange={(v) => { if (v) setEditQuality(v as Quality); }}
+                    onValueChange={(v) => v && setEditQuality(v as Quality)}
                     className="flex flex-wrap gap-2 justify-start"
                   >
                     {qualities.map((q) => (

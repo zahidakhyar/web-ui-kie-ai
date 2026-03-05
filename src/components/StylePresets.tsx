@@ -24,7 +24,7 @@ export default function StylePresets({ selected, onSelect }: StylePresetsProps) 
       <ToggleGroup
         type="single"
         value={selected}
-        onValueChange={(v) => { if (v) onSelect(v); }}
+        onValueChange={(v) => v && onSelect(v)}
         className="grid grid-cols-3 gap-2 sm:grid-cols-6"
       >
         {PRESETS.map((preset) => (
