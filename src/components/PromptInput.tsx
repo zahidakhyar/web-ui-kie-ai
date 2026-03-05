@@ -1,5 +1,9 @@
 "use client";
 
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/cn";
+
 interface PromptInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -18,19 +22,20 @@ export default function PromptInput({
   rows = 4,
 }: PromptInputProps) {
   return (
-    <div className="w-full">
-      <div className="mb-1.5 flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-200">{label}</label>
-        <span className={`text-xs ${value.length > maxLength * 0.9 ? "text-amber-400" : "text-gray-500"}`}>
+    <div className="w-full space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={`prompt-${label}`}>{label}</Label>
+        <span className={cn("text-xs", value.length > maxLength * 0.9 ? "text-amber-400" : "text-muted-foreground")}>
           {value.length} / {maxLength}
         </span>
       </div>
-      <textarea
+      <Textarea
+        id={`prompt-${label}`}
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
         placeholder={placeholder}
         rows={rows}
-        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 transition-all focus:border-violet-500/60 focus:outline-none focus:ring-1 focus:ring-violet-500/40"
+        className="bg-input/30 border-border focus-visible:ring-ring"
       />
     </div>
   );

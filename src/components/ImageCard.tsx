@@ -1,6 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { Download, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 
 export interface ImageCardData {
   id: string;
@@ -16,7 +21,7 @@ interface ImageCardProps {
 
 export default function ImageCard({ image }: ImageCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-all hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/10">
+    <Card className="group overflow-hidden border-border bg-card hover:border-violet-500/40 hover:shadow-lg hover:shadow-violet-500/10 transition-all">
       <div className="relative aspect-square w-full overflow-hidden">
         <Image
           src={image.src}
@@ -30,39 +35,44 @@ export default function ImageCard({ image }: ImageCardProps) {
         {/* Overlay actions */}
         <div className="absolute bottom-0 left-0 right-0 translate-y-full p-3 transition-transform group-hover:translate-y-0">
           <div className="flex gap-2">
-            <a
-              href={image.src}
-              download
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/30"
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="flex-1 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0"
             >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download
-            </a>
-            <button className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-violet-600/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-violet-600/80">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <a href={image.src} download>
+                <Download className="size-3.5" />
+                Download
+              </a>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1 bg-violet-600/60 backdrop-blur-sm hover:bg-violet-600/80 text-white border-0"
+            >
+              <RefreshCw className="size-3.5" />
               Re-gen
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="p-3">
-        <span
-          className={`mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+      <CardContent className="p-3">
+        <Badge
+          variant="secondary"
+          className={cn(
+            "mb-2",
             image.type === "text-to-image"
-              ? "bg-violet-500/20 text-violet-300"
-              : "bg-blue-500/20 text-blue-300"
-          }`}
+              ? "bg-violet-500/20 text-violet-300 hover:bg-violet-500/30"
+              : "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"
+          )}
         >
           {image.type === "text-to-image" ? "Text to Image" : "Image Edit"}
-        </span>
-        <p className="line-clamp-2 text-sm text-gray-300">{image.prompt}</p>
-        <p className="mt-1 text-xs text-gray-500">{image.date}</p>
-      </div>
-    </div>
+        </Badge>
+        <p className="line-clamp-2 text-sm text-foreground">{image.prompt}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{image.date}</p>
+      </CardContent>
+    </Card>
   );
 }
