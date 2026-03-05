@@ -7,7 +7,7 @@ import StylePresets from "@/components/StylePresets";
 
 type Tab = "text-to-image" | "image-edit";
 type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-type Quality = "standard" | "high" | "ultra";
+type Quality = "basic" | "high";
 type ImageCount = 1 | 2 | 4;
 
 interface GeneratedImage {
@@ -22,7 +22,7 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
-  const [quality, setQuality] = useState<Quality>("standard");
+  const [quality, setQuality] = useState<Quality>("basic");
   const [stylePreset, setStylePreset] = useState("photorealistic");
   const [imageCount, setImageCount] = useState<ImageCount>(1);
 
@@ -36,6 +36,7 @@ export default function HomePage() {
 
   // Generation state
   const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
 
   const handleGenerate = async () => {
@@ -44,20 +45,106 @@ export default function HomePage() {
 
     setLoading(true);
     setGeneratedImages([]);
+    setStatusMessage("Submitting request...");
 
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      let taskId: string | null = null;
 
-    const count = activeTab === "text-to-image" ? imageCount : 1;
-    const seeds = Array.from({ length: count }, (_, i) =>
-      Math.floor(Math.random() * 900) + 100 + i * 37
-    );
-    const images: GeneratedImage[] = seeds.map((seed, i) => ({
-      id: `gen-${Date.now()}-${i}`,
-      src: `https://picsum.photos/seed/${seed}/600/600`,
-    }));
+      if (activeTab === "text-to-image") {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            negativePrompt,
+            aspectRatio,
+            quality,
+            style: stylePreset,
+            count: imageCount,
+          }),
+        });
+        const data = await res.json();
+        if (data.taskId) {
+          taskId = data.taskId as string;
+        } else if (data.images) {
+          // Mock immediate response (no API key configured)
+          setGeneratedImages(
+            (data.images as { id: string; url: string }[]).map((img) => ({
+              id: img.id,
+              src: img.url,
+            }))
+          );
+          return;
+        } else {
+          setStatusMessage("Failed to submit request. Please try again.");
+          return;
+        }
+      } else {
+        const res = await fetch("/api/edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: editPrompt,
+            imageUrl: uploadedImage,
+            keepPose,
+            keepLighting,
+            keepColors,
+            aspectRatio,
+            quality,
+          }),
+        });
+        const data = await res.json();
+        if (data.taskId) {
+          taskId = data.taskId as string;
+        } else if (data.image) {
+          // Mock immediate response
+          setGeneratedImages([{ id: data.image.id, src: data.image.url }]);
+          return;
+        } else {
+          setStatusMessage("Failed to submit edit request. Please try again.");
+          return;
+        }
+      }
 
-    setGeneratedImages(images);
-    setLoading(false);
+      if (!taskId) return;
+
+      // Poll task status until done (max 3 minutes, 3s interval)
+      setStatusMessage("Checking status...");
+      const maxAttempts = 60;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        const statusRes = await fetch(`/api/status?taskId=${encodeURIComponent(taskId)}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.state === "success") {
+          setGeneratedImages(
+            (statusData.resultUrls as string[]).map((url, i) => ({
+              id: `gen-${Date.now()}-${i}`,
+              src: url,
+            }))
+          );
+          return;
+        }
+
+        if (statusData.state === "fail") {
+          setStatusMessage(`Generation failed: ${statusData.failMsg ?? "unknown error"}`);
+          return;
+        }
+
+        setStatusMessage(
+          statusData.state === "queuing"
+            ? "Queued, waiting..."
+            : statusData.state === "waiting"
+            ? "Waiting..."
+            : "Generating..."
+        );
+      }
+
+      setStatusMessage("Request timed out. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFileChange = (file: File) => {
@@ -75,9 +162,8 @@ export default function HomePage() {
 
   const aspectRatios: AspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
   const qualities: { value: Quality; label: string }[] = [
-    { value: "standard", label: "Standard (1K)" },
-    { value: "high", label: "High (2K)" },
-    { value: "ultra", label: "Ultra (4K)" },
+    { value: "basic", label: "Basic (2K)" },
+    { value: "high", label: "High (4K)" },
   ];
   const imageCounts: ImageCount[] = [1, 2, 4];
 
@@ -287,7 +373,7 @@ export default function HomePage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Generating...
+                {statusMessage || "Generating..."}
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
@@ -304,11 +390,14 @@ export default function HomePage() {
           </h2>
 
           {loading ? (
-            <div className={`grid gap-3 ${imageCount >= 4 ? "grid-cols-2" : imageCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
-              {Array.from({ length: activeTab === "text-to-image" ? imageCount : 1 }).map((_, i) => (
-                <div key={i} className="aspect-square animate-pulse rounded-xl bg-white/10" />
-              ))}
-            </div>
+            <>
+              <p className="mb-3 text-center text-sm text-gray-400">{statusMessage || "Generating..."}</p>
+              <div className={`grid gap-3 ${imageCount >= 4 ? "grid-cols-2" : imageCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                {Array.from({ length: activeTab === "text-to-image" ? imageCount : 1 }).map((_, i) => (
+                  <div key={i} className="aspect-square animate-pulse rounded-xl bg-white/10" />
+                ))}
+              </div>
+            </>
           ) : generatedImages.length > 0 ? (
             <div className={`grid gap-3 ${generatedImages.length >= 4 ? "grid-cols-2" : generatedImages.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
               {generatedImages.map((img) => (
@@ -327,6 +416,15 @@ export default function HomePage() {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : statusMessage && !loading ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+              <div className="rounded-full bg-red-500/10 p-6">
+                <svg className="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <p className="text-sm text-red-400">{statusMessage}</p>
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
