@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { Download, Plus, X, Loader2, Sparkles } from "lucide-react";
+import { Download, Plus, X, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import PromptInput from "@/components/PromptInput";
 import StylePresets from "@/components/StylePresets";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,16 @@ interface GeneratedImage {
   src: string;
 }
 
+/** A reference image slot: preview is shown immediately; url is set after upload */
+interface RefImage {
+  /** Local blob URL for thumbnail preview — revoked on removal */
+  preview: string;
+  /** Public URL returned by /api/upload — null while uploading */
+  url: string | null;
+  uploading: boolean;
+  error: string | null;
+}
+
 const MAX_REFERENCE_IMAGES = 14;
 
 export default function HomePage() {
@@ -34,7 +44,7 @@ export default function HomePage() {
 
   // Image edit state
   const [editPrompt, setEditPrompt] = useState("");
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [refImages, setRefImages] = useState<RefImage[]>([]);
   const [editAspectRatio, setEditAspectRatio] = useState<AspectRatio>("1:1");
   const [editQuality, setEditQuality] = useState<Quality>("basic");
   const [keepPose, setKeepPose] = useState(false);
@@ -47,6 +57,17 @@ export default function HomePage() {
   const [statusMessage, setStatusMessage] = useState("");
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [activeTab, setActiveTab] = useState("text-to-image");
+
+  const anyUploading = refImages.some((r) => r.uploading);
+  const readyUrls = refImages.filter((r) => r.url).map((r) => r.url!);
+
+  // Revoke all blob preview URLs when the component unmounts to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      refImages.forEach((r) => URL.revokeObjectURL(r.preview));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = async () => {
     if (activeTab === "text-to-image" && !prompt.trim()) return;
@@ -95,7 +116,7 @@ export default function HomePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: editPrompt,
-            imageUrls: uploadedImages,
+            imageUrls: readyUrls,
             keepPose,
             keepLighting,
             keepColors,
@@ -208,22 +229,66 @@ export default function HomePage() {
     }
   };
 
+  /** Upload files to /api/upload immediately; show spinner until done */
   const handleFilesChange = useCallback(
-    (files: File[]) => {
-      const remaining = MAX_REFERENCE_IMAGES - uploadedImages.length;
+    async (files: File[]) => {
+      const remaining = MAX_REFERENCE_IMAGES - refImages.length;
       const toProcess = files.slice(0, remaining);
-      toProcess.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) =>
-          setUploadedImages((prev) =>
-            prev.length < MAX_REFERENCE_IMAGES
-              ? [...prev, e.target?.result as string]
-              : prev
-          );
-        reader.readAsDataURL(file);
-      });
+      if (toProcess.length === 0) return;
+
+      // Capture the start index before any state update to avoid race conditions
+      const startIndex = refImages.length;
+
+      // Create placeholder slots with blob preview URLs right away
+      const slots: RefImage[] = toProcess.map((file) => ({
+        preview: URL.createObjectURL(file),
+        url: null,
+        uploading: true,
+        error: null,
+      }));
+
+      setRefImages((prev) => [...prev, ...slots]);
+
+      // Upload each file and update its slot
+      await Promise.all(
+        toProcess.map(async (file, i) => {
+          const slotIndex = startIndex + i;
+          try {
+            const form = new FormData();
+            form.append("file", file);
+            const res = await fetch("/api/upload", { method: "POST", body: form });
+            const data = (await res.json()) as { success: boolean; url?: string; error?: string };
+
+            setRefImages((prev) => {
+              const next = [...prev];
+              if (next[slotIndex]) {
+                next[slotIndex] = {
+                  ...next[slotIndex],
+                  url: data.success && data.url ? data.url : null,
+                  uploading: false,
+                  error: data.success ? null : (data.error ?? "Upload failed"),
+                };
+              }
+              return next;
+            });
+          } catch (err) {
+            console.error("[upload] file upload failed:", err);
+            setRefImages((prev) => {
+              const next = [...prev];
+              if (next[slotIndex]) {
+                next[slotIndex] = {
+                  ...next[slotIndex],
+                  uploading: false,
+                  error: "Upload failed",
+                };
+              }
+              return next;
+            });
+          }
+        })
+      );
     },
-    [uploadedImages.length]
+    [refImages.length]
   );
 
   const handleDrop = useCallback(
@@ -238,8 +303,13 @@ export default function HomePage() {
     [handleFilesChange]
   );
 
-  const removeUploadedImage = (idx: number) =>
-    setUploadedImages((prev) => prev.filter((_, i) => i !== idx));
+  const removeRefImage = (idx: number) => {
+    setRefImages((prev) => {
+      const slot = prev[idx];
+      if (slot) URL.revokeObjectURL(slot.preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
 
   const aspectRatios: AspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
   const qualities: { value: Quality; label: string }[] = [
@@ -252,7 +322,10 @@ export default function HomePage() {
     { value: 4, label: "4" },
   ];
 
-  const canGenerate = activeTab === "text-to-image" ? !!prompt.trim() : !!editPrompt.trim();
+  const canGenerate =
+    activeTab === "text-to-image"
+      ? !!prompt.trim()
+      : !!editPrompt.trim() && !anyUploading;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -367,34 +440,59 @@ export default function HomePage() {
                   <div className="flex items-center justify-between">
                     <Label>Reference Images</Label>
                     <span className="text-xs text-muted-foreground">
-                      {uploadedImages.length}/{MAX_REFERENCE_IMAGES} images
+                      {readyUrls.length}/{MAX_REFERENCE_IMAGES} ready
+                      {anyUploading && (
+                        <span className="ml-1 text-amber-400">· uploading…</span>
+                      )}
                     </span>
                   </div>
 
-                  {uploadedImages.length > 0 && (
+                  {refImages.length > 0 && (
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                      {uploadedImages.map((src, idx) => (
+                      {refImages.map((ref, idx) => (
                         <div
                           key={idx}
                           className="group relative aspect-square overflow-hidden rounded-lg border border-border"
                         >
-                          <Image
-                            src={src}
+                          {/* Use plain <img> for blob/local preview URLs */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={ref.preview}
                             alt={`Reference ${idx + 1}`}
-                            fill
-                            className="object-cover"
+                            className="h-full w-full object-cover"
                           />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeUploadedImage(idx)}
-                            className="absolute right-0.5 top-0.5 size-5 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
-                          >
-                            <X className="size-3" />
-                          </Button>
+
+                          {/* Uploading overlay */}
+                          {ref.uploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                              <Loader2 className="size-5 animate-spin text-white" />
+                            </div>
+                          )}
+
+                          {/* Error overlay */}
+                          {ref.error && !ref.uploading && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 p-1 text-center">
+                              <AlertCircle className="size-4 text-red-400" />
+                              <span className="text-[10px] leading-tight text-red-300">
+                                {ref.error}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Remove button */}
+                          {!ref.uploading && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeRefImage(idx)}
+                              className="absolute right-0.5 top-0.5 size-5 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition-opacity hover:bg-destructive group-hover:opacity-100"
+                            >
+                              <X className="size-3" />
+                            </Button>
+                          )}
                         </div>
                       ))}
-                      {uploadedImages.length < MAX_REFERENCE_IMAGES && (
+                      {refImages.length < MAX_REFERENCE_IMAGES && (
                         <Button
                           variant="outline"
                           onClick={() => document.getElementById("file-upload")?.click()}
@@ -406,7 +504,7 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {uploadedImages.length === 0 && (
+                  {refImages.length === 0 && (
                     <div
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                       onDragLeave={() => setDragOver(false)}
@@ -518,6 +616,11 @@ export default function HomePage() {
                   <>
                     <Loader2 className="size-5 animate-spin" />
                     {statusMessage || "Generating..."}
+                  </>
+                ) : anyUploading ? (
+                  <>
+                    <Loader2 className="size-5 animate-spin" />
+                    Uploading images…
                   </>
                 ) : (
                   <>
@@ -632,3 +735,4 @@ export default function HomePage() {
     </div>
   );
 }
+
