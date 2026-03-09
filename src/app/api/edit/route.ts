@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     },
     body: JSON.stringify({
       model: "seedream/4.5-edit",
-      callBackUrl: process.env.KIE_CALLBACK_URL,
+      callBackUrl: process.env.KIE_CALLBACK_URL ?? undefined,
       input: {
         prompt,
         image_urls: publicUrls,
@@ -60,6 +60,15 @@ export async function POST(request: NextRequest) {
   }
 
   const data = await res.json();
+  const code = data?.code;
+
+  if (code !== 200) {
+    return NextResponse.json(
+      { success: false, error: `${data?.msg || "Unknown error"}` },
+      { status: 502 }
+    );
+  }
+
   const taskId = data?.data?.taskId;
 
   if (typeof taskId !== "string" || !taskId) {
