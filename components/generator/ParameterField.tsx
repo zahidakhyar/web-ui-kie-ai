@@ -12,12 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploadField } from "./ImageUploadField";
 import { cn } from "@/lib/utils";
 
 interface ParameterFieldProps {
   param: ModelParameter;
-  value: string | number | boolean;
-  onChange: (key: string, value: string | number | boolean) => void;
+  value: string | number | boolean | string[];
+  onChange: (key: string, value: string | number | boolean | string[]) => void;
   disabled?: boolean;
 }
 
@@ -158,6 +159,16 @@ export function ParameterField({
             {value ? "Enabled" : "Disabled"}
           </Label>
         </div>
+      )}
+
+      {param.type === "image-upload" && (
+        <ImageUploadField
+          id={param.key}
+          value={Array.isArray(value) ? value : []}
+          onChange={(urls) => onChange(param.key, urls)}
+          maxFiles={param.maxFiles ?? 5}
+          disabled={disabled}
+        />
       )}
     </div>
   );

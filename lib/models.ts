@@ -56,6 +56,15 @@ export const MODELS: ModelConfig[] = [
         description: "Enable content safety filter.",
         default: true,
       },
+      {
+        key: "image_urls",
+        label: "Reference Images",
+        type: "image-upload",
+        required: false,
+        description:
+          "Upload reference images to guide the style or content of the generation. Supports up to 5 images.",
+        maxFiles: 5,
+      },
     ],
   },
 ];

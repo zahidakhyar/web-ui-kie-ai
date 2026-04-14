@@ -67,7 +67,8 @@ export type ParameterType =
   | "select"
   | "number"
   | "boolean"
-  | "aspect-ratio";
+  | "aspect-ratio"
+  | "image-upload";
 
 export interface SelectOption {
   label: string;
@@ -85,6 +86,8 @@ export interface ModelParameter {
   max?: number;
   step?: number;
   default?: string | number | boolean;
+  /** For image-upload: maximum number of images allowed */
+  maxFiles?: number;
 }
 
 export interface ModelConfig {

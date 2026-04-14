@@ -12,11 +12,13 @@ import { ModelParameter } from "@/types";
 
 function buildDefaultValues(
   params: ModelParameter[],
-): Record<string, string | number | boolean> {
+): Record<string, string | number | boolean | string[]> {
   return Object.fromEntries(
     params.map((p) => [
       p.key,
-      p.default ?? (p.type === "boolean" ? false : ""),
+      p.type === "image-upload"
+        ? []
+        : (p.default ?? (p.type === "boolean" ? false : "")),
     ]),
   );
 }
@@ -29,7 +31,7 @@ interface GeneratorFormProps {
 export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const [values, setValues] = useState<
-    Record<string, string | number | boolean>
+    Record<string, string | number | boolean | string[]>
   >(() => buildDefaultValues(getModelById(DEFAULT_MODEL_ID)!.parameters));
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +43,10 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
     }
   }
 
-  function handleValueChange(key: string, value: string | number | boolean) {
+  function handleValueChange(
+    key: string,
+    value: string | number | boolean | string[],
+  ) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -52,9 +57,17 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
     // Validate required
     for (const param of model.parameters) {
-      if (param.required && !values[param.key] && values[param.key] !== 0) {
-        toast.error(`"${param.label}" is required.`);
-        return;
+      const v = values[param.key];
+      if (param.required) {
+        if (param.type === "image-upload") {
+          if (!Array.isArray(v) || v.length === 0) {
+            toast.error(`"${param.label}" requires at least one image.`);
+            return;
+          }
+        } else if (!v && v !== 0) {
+          toast.error(`"${param.label}" is required.`);
+          return;
+        }
       }
     }
 
@@ -103,7 +116,10 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
           <ParameterField
             key={param.key}
             param={param}
-            value={values[param.key] ?? param.default ?? ""}
+            value={
+              values[param.key] ??
+              (param.type === "image-upload" ? [] : (param.default ?? ""))
+            }
             onChange={handleValueChange}
             disabled={isDisabled}
           />
