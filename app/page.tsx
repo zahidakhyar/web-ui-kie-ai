@@ -1,65 +1,118 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+import { GeneratorForm } from "@/components/generator/GeneratorForm";
+import { GenerationProgress } from "@/components/generator/GenerationProgress";
+import { GeneratedImage } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Wand2 } from "lucide-react";
+
+interface ActiveTask {
+  taskId: string;
+  done: boolean;
+  images: GeneratedImage[];
+}
+
+export default function HomePage() {
+  const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleTaskCreated = useCallback((taskId: string) => {
+    setActiveTasks((prev) => [{ taskId, done: false, images: [] }, ...prev]);
+    setIsGenerating(false);
+  }, []);
+
+  const handleComplete = useCallback(
+    (taskId: string, images: GeneratedImage[]) => {
+      setActiveTasks((prev) =>
+        prev.map((t) => (t.taskId === taskId ? { ...t, done: true, images } : t))
+      );
+      toast.success(`Generated ${images.length} image${images.length !== 1 ? "s" : ""}!`);
+    },
+    []
+  );
+
+  const handleError = useCallback((taskId: string, msg: string) => {
+    setActiveTasks((prev) =>
+      prev.map((t) => (t.taskId === taskId ? { ...t, done: true } : t))
+    );
+    toast.error(msg);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
+        {/* Left panel: form */}
+        <div className="lg:sticky lg:top-[4.5rem]">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Wand2 className="size-4 text-primary" />
+                Image Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <GeneratorForm
+                onTaskCreated={(taskId) => {
+                  setIsGenerating(true);
+                  handleTaskCreated(taskId);
+                }}
+                disabled={isGenerating}
+              />
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Right panel: progress & results */}
+        <div className="space-y-4">
+          {activeTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center space-y-3 rounded-xl border-2 border-dashed border-border/50">
+              <div className="size-12 rounded-full bg-muted flex items-center justify-center">
+                <Wand2 className="size-6 text-muted-foreground/50" />
+              </div>
+              <div>
+                <p className="text-muted-foreground font-medium">
+                  Your generations will appear here
+                </p>
+                <p className="text-sm text-muted-foreground/60 mt-1">
+                  Fill in the form and click Generate to start.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {activeTasks.length} task{activeTasks.length !== 1 ? "s" : ""}
+                </p>
+                {activeTasks.some((t) => t.done) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() =>
+                      setActiveTasks((prev) => prev.filter((t) => !t.done))
+                    }
+                  >
+                    Clear completed
+                  </Button>
+                )}
+              </div>
+
+              {activeTasks.map((task) => (
+                <GenerationProgress
+                  key={task.taskId}
+                  taskId={task.taskId}
+                  onComplete={(images) => handleComplete(task.taskId, images)}
+                  onError={(msg) => handleError(task.taskId, msg)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

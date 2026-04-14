@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local database
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm
+
+# Environment variables
+.env
+.env.local
