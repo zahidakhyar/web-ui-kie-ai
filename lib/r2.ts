@@ -83,6 +83,37 @@ export async function deleteImage(key: string): Promise<void> {
   );
 }
 
+/**
+ * Uploads a raw buffer to R2 and returns the public URL.
+ */
+export async function uploadBuffer(
+  buffer: Buffer,
+  key: string,
+  contentType: string,
+): Promise<string> {
+  const client = getR2Client();
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    }),
+  );
+
+  if (PUBLIC_URL) {
+    return `${PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+  }
+
+  const presignedUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key }),
+    { expiresIn: 604800 },
+  );
+  return presignedUrl.split("?")[0];
+}
+
 export function buildR2Key(
   taskId: string,
   index: number,
