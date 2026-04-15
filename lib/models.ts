@@ -273,6 +273,71 @@ export const MODELS: ModelConfig[] = [
       },
     ],
   },
+  {
+    id: "seedream/5-lite-image-to-image",
+    name: "SeeDream 5 Lite Image-to-Image",
+    description:
+      "Fast and efficient image-to-image transformation model. Transform existing images with AI-powered precision using text descriptions. Outputs 2K (basic) or 3K (high) images.",
+    provider: "KIE.ai",
+    tags: ["image-to-image", "image-transformation", "fast"],
+    parameters: [
+      {
+        key: "image_urls",
+        label: "Image to Transform",
+        type: "image-upload",
+        required: true,
+        description:
+          "Upload the image you want to transform. Supported formats: JPEG, PNG, WebP (max 10MB). You can upload up to 5 images.",
+        maxFiles: 5,
+      },
+      {
+        key: "prompt",
+        label: "Transformation Instructions",
+        type: "textarea",
+        required: true,
+        description:
+          "Describe how you want to transform the image (max 2996 chars).",
+      },
+      {
+        key: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "aspect-ratio",
+        required: true,
+        description: "Choose the dimensions of your output image.",
+        options: [
+          { label: "1:1 (Square)", value: "1:1" },
+          { label: "4:3 (Landscape)", value: "4:3" },
+          { label: "3:4 (Portrait)", value: "3:4" },
+          { label: "16:9 (Widescreen)", value: "16:9" },
+          { label: "9:16 (Stories)", value: "9:16" },
+          { label: "2:3", value: "2:3" },
+          { label: "3:2", value: "3:2" },
+          { label: "21:9 (Ultrawide)", value: "21:9" },
+        ],
+        default: "1:1",
+      },
+      {
+        key: "quality",
+        label: "Quality",
+        type: "select",
+        required: true,
+        description: "Basic outputs 2K images, High outputs 3K images.",
+        options: [
+          { label: "Basic (2K)", value: "basic" },
+          { label: "High (3K)", value: "high" },
+        ],
+        default: "basic",
+      },
+      {
+        key: "nsfw_checker",
+        label: "Content Safety Filter",
+        type: "boolean",
+        required: false,
+        description: "Enable content safety filter.",
+        default: false,
+      },
+    ],
+  },
 ];
 
 export function getModelById(id: string): ModelConfig | undefined {
