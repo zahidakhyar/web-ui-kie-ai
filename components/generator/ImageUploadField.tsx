@@ -97,7 +97,7 @@ function LibraryContent({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
         <Upload className="size-8 mb-3 opacity-40" />
-        <p className="text-sm">Belum ada gambar yang diupload</p>
+        <p className="text-sm">No images uploaded yet</p>
       </div>
     );
   }
@@ -392,7 +392,7 @@ export function ImageUploadField({
           disabled={disabled}
         >
           <FolderOpen className="size-4 mr-2" />
-          Pilih dari upload sebelumnya
+          Select from previous uploads
         </Button>
       )}
 
@@ -443,7 +443,7 @@ export function ImageUploadField({
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Upload Sebelumnya</DialogTitle>
+            <DialogTitle>Previous Uploads</DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto min-h-0">
@@ -459,8 +459,8 @@ export function ImageUploadField({
           <div className="flex items-center justify-between pt-3 border-t border-border">
             <p className="text-sm text-muted-foreground">
               {selected.size > 0
-                ? `${selected.size} dipilih`
-                : "Klik gambar untuk memilih"}
+                ? `${selected.size} selected`
+                : "Click images to select"}
             </p>
             <div className="flex gap-2">
               <Button
@@ -469,7 +469,7 @@ export function ImageUploadField({
                 size="sm"
                 onClick={() => setPickerOpen(false)}
               >
-                Batal
+                Cancel
               </Button>
               <Button
                 type="button"
@@ -477,7 +477,7 @@ export function ImageUploadField({
                 disabled={selected.size === 0}
                 onClick={confirmPicker}
               >
-                Tambahkan ({selected.size})
+                Add ({selected.size})
               </Button>
             </div>
           </div>
