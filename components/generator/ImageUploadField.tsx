@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface UploadedImage {
   /** Local object URL for preview */
@@ -37,6 +38,12 @@ interface UploadRecord {
   mimeType: string;
   fileSize: number;
   createdAt: number;
+}
+
+interface GalleryPickerImage {
+  imageId: number;
+  r2Url: string;
+  prompt: string;
 }
 
 interface ImageUploadFieldProps {
@@ -145,6 +152,79 @@ function LibraryContent({
   );
 }
 
+function GalleryPickerContent({
+  loading,
+  images,
+  addedUrls,
+  selected,
+  onToggle,
+}: {
+  loading: boolean;
+  images: GalleryPickerImage[];
+  addedUrls: Set<string>;
+  selected: Set<string>;
+  onToggle: (url: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <Upload className="size-8 mb-3 opacity-40" />
+        <p className="text-sm">No generated images yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-1">
+      {images.map((img) => {
+        const isAdded = addedUrls.has(img.r2Url);
+        const isSelected = selected.has(img.r2Url);
+        return (
+          <button
+            key={img.imageId}
+            type="button"
+            disabled={isAdded}
+            onClick={() => !isAdded && onToggle(img.r2Url)}
+            className={cn(
+              "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
+              getLibraryItemBorderClass(isAdded, isSelected),
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.r2Url}
+              alt={img.prompt}
+              className="w-full h-full object-cover"
+            />
+            {isSelected && (
+              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                <div className="size-6 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="size-3.5 text-primary-foreground" />
+                </div>
+              </div>
+            )}
+            {isAdded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="size-6 rounded-full bg-muted flex items-center justify-center">
+                  <Check className="size-3.5 text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ImageUploadField({
   id,
   value,
@@ -158,8 +238,13 @@ export function ImageUploadField({
 
   // Library picker state
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [activePickerTab, setActivePickerTab] = useState<"uploads" | "gallery">(
+    "uploads",
+  );
   const [library, setLibrary] = useState<UploadRecord[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<GalleryPickerImage[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const uploadFiles = useCallback(
@@ -272,6 +357,7 @@ export function ImageUploadField({
   async function openPicker() {
     setPickerOpen(true);
     setSelected(new Set());
+    setActivePickerTab("uploads");
     setLibraryLoading(true);
     try {
       const res = await fetch("/api/uploads?limit=100");
@@ -281,6 +367,40 @@ export function ImageUploadField({
       setLibrary([]);
     } finally {
       setLibraryLoading(false);
+    }
+  }
+
+  async function loadGallery() {
+    if (galleryImages.length > 0) return; // already loaded
+    setGalleryLoading(true);
+    try {
+      const res = await fetch("/api/gallery?page=1&limit=50");
+      const data = (await res.json()) as {
+        items?: Array<{
+          taskId: string;
+          prompt: string;
+          images: Array<{ id: number; r2Url: string }>;
+        }>;
+      };
+      const flat: GalleryPickerImage[] = (data.items ?? []).flatMap((task) =>
+        task.images.map((img) => ({
+          imageId: img.id,
+          r2Url: img.r2Url,
+          prompt: task.prompt,
+        })),
+      );
+      setGalleryImages(flat);
+    } catch {
+      setGalleryImages([]);
+    } finally {
+      setGalleryLoading(false);
+    }
+  }
+
+  function handlePickerTabChange(tab: string) {
+    setActivePickerTab(tab as "uploads" | "gallery");
+    if (tab === "gallery") {
+      loadGallery();
     }
   }
 
@@ -307,12 +427,16 @@ export function ImageUploadField({
     }
 
     const newItems: UploadedImage[] = toAdd.map((url) => {
-      const record = library.find((r) => r.r2Url === url);
+      const uploadRecord = library.find((r) => r.r2Url === url);
+      const galleryRecord = galleryImages.find((g) => g.r2Url === url);
       return {
         preview: url,
         url,
         status: "done",
-        fileName: record?.fileName ?? "image",
+        fileName:
+          uploadRecord?.fileName ??
+          galleryRecord?.prompt.slice(0, 40) ??
+          "image",
       };
     });
 
@@ -443,18 +567,49 @@ export function ImageUploadField({
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Previous Uploads</DialogTitle>
+            <DialogTitle>Select Image</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <LibraryContent
-              loading={libraryLoading}
-              library={library}
-              addedUrls={addedUrls}
-              selected={selected}
-              onToggle={toggleSelect}
-            />
-          </div>
+          <Tabs
+            value={activePickerTab}
+            onValueChange={handlePickerTabChange}
+            className="flex flex-col flex-1 min-h-0"
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="uploads" className="flex-1">
+                Previous Uploads
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="flex-1">
+                Gallery
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent
+              value="uploads"
+              className="flex-1 overflow-y-auto min-h-0 mt-2"
+            >
+              <LibraryContent
+                loading={libraryLoading}
+                library={library}
+                addedUrls={addedUrls}
+                selected={selected}
+                onToggle={toggleSelect}
+              />
+            </TabsContent>
+
+            <TabsContent
+              value="gallery"
+              className="flex-1 overflow-y-auto min-h-0 mt-2"
+            >
+              <GalleryPickerContent
+                loading={galleryLoading}
+                images={galleryImages}
+                addedUrls={addedUrls}
+                selected={selected}
+                onToggle={toggleSelect}
+              />
+            </TabsContent>
+          </Tabs>
 
           <div className="flex items-center justify-between pt-3 border-t border-border">
             <p className="text-sm text-muted-foreground">

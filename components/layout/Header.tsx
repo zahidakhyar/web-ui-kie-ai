@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Moon, Sun, Wand2, Images, Coins } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,21 +13,18 @@ const NAV = [
   { href: "/gallery", label: "Gallery", icon: Images },
 ];
 
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((r) => r.json())
+    .catch(() => null);
+
 export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [credits, setCredits] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("/api/credits")
-      .then((r) => r.json())
-      .then((data: { credits?: number }) => {
-        if (data.credits !== undefined) setCredits(data.credits);
-      })
-      .catch(() => {
-        /* silently fail */
-      });
-  }, []);
+  const { data } = useSWR<{ credits?: number }>("/api/credits", fetcher, {
+    revalidateOnFocus: false,
+  });
+  const credits = data?.credits ?? null;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
