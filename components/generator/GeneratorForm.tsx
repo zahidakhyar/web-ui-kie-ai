@@ -101,7 +101,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-1">
+      <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-18rem)] pr-1">
         <div className="space-y-2">
           <p className="text-sm font-medium">Model</p>
           <ModelSelector

@@ -27,16 +27,20 @@ export default function HomePage() {
   const handleComplete = useCallback(
     (taskId: string, images: GeneratedImage[]) => {
       setActiveTasks((prev) =>
-        prev.map((t) => (t.taskId === taskId ? { ...t, done: true, images } : t))
+        prev.map((t) =>
+          t.taskId === taskId ? { ...t, done: true, images } : t,
+        ),
       );
-      toast.success(`Generated ${images.length} image${images.length !== 1 ? "s" : ""}!`);
+      toast.success(
+        `Generated ${images.length} image${images.length !== 1 ? "s" : ""}!`,
+      );
     },
-    []
+    [],
   );
 
   const handleError = useCallback((taskId: string, msg: string) => {
     setActiveTasks((prev) =>
-      prev.map((t) => (t.taskId === taskId ? { ...t, done: true } : t))
+      prev.map((t) => (t.taskId === taskId ? { ...t, done: true } : t)),
     );
     toast.error(msg);
   }, []);
