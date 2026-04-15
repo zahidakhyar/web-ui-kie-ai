@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadBuffer } from "@/lib/r2";
-import { randomUUID } from "crypto";
+import { db } from "@/lib/db";
+import { uploads } from "@/lib/schema";
+import { randomUUID } from "node:crypto";
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -52,6 +54,14 @@ export async function POST(request: NextRequest) {
 
       const url = await uploadBuffer(buffer, key, file.type);
       results.push(url);
+
+      await db.insert(uploads).values({
+        r2Url: url,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        createdAt: Date.now(),
+      });
     }
 
     return NextResponse.json({ urls: results });

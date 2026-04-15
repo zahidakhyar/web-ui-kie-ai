@@ -1,9 +1,23 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Upload, X, Loader2, ImagePlus, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  X,
+  Loader2,
+  ImagePlus,
+  AlertCircle,
+  FolderOpen,
+  Check,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UploadedImage {
   /** Local object URL for preview */
@@ -14,6 +28,15 @@ interface UploadedImage {
   status: "uploading" | "done" | "error";
   errorMsg?: string;
   fileName: string;
+}
+
+interface UploadRecord {
+  id: number;
+  r2Url: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  createdAt: number;
 }
 
 interface ImageUploadFieldProps {
@@ -33,6 +56,95 @@ const ALLOWED_TYPES = [
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+function matchesPlaceholder(
+  placeholders: UploadedImage[],
+  item: UploadedImage,
+): boolean {
+  return placeholders.some((p) => p.preview === item.preview);
+}
+
+function getLibraryItemBorderClass(
+  isAdded: boolean,
+  isSelected: boolean,
+): string {
+  if (isAdded) return "opacity-40 cursor-not-allowed border-border";
+  if (isSelected) return "border-primary ring-2 ring-primary/30";
+  return "border-transparent hover:border-primary/50";
+}
+
+function LibraryContent({
+  loading,
+  library,
+  addedUrls,
+  selected,
+  onToggle,
+}: {
+  loading: boolean;
+  library: UploadRecord[];
+  addedUrls: Set<string>;
+  selected: Set<string>;
+  onToggle: (url: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (library.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <Upload className="size-8 mb-3 opacity-40" />
+        <p className="text-sm">Belum ada gambar yang diupload</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-1">
+      {library.map((record) => {
+        const isAdded = addedUrls.has(record.r2Url);
+        const isSelected = selected.has(record.r2Url);
+        return (
+          <button
+            key={record.id}
+            type="button"
+            disabled={isAdded}
+            onClick={() => !isAdded && onToggle(record.r2Url)}
+            className={cn(
+              "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
+              getLibraryItemBorderClass(isAdded, isSelected),
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={record.r2Url}
+              alt={record.fileName}
+              className="w-full h-full object-cover"
+            />
+            {isSelected && (
+              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                <div className="size-6 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="size-3.5 text-primary-foreground" />
+                </div>
+              </div>
+            )}
+            {isAdded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="size-6 rounded-full bg-muted flex items-center justify-center">
+                  <Check className="size-3.5 text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ImageUploadField({
   id,
   value,
@@ -43,6 +155,12 @@ export function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Library picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [library, setLibrary] = useState<UploadRecord[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const uploadFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -58,7 +176,6 @@ export function ImageUploadField({
 
       if (!toUpload.length) return;
 
-      // Add placeholders immediately for instant preview
       const placeholders: UploadedImage[] = toUpload.map((f) => ({
         preview: URL.createObjectURL(f),
         url: null,
@@ -68,7 +185,6 @@ export function ImageUploadField({
 
       setItems((prev) => [...prev, ...placeholders]);
 
-      // Upload all at once
       const formData = new FormData();
       toUpload.forEach((f) => formData.append("files", f));
 
@@ -79,10 +195,12 @@ export function ImageUploadField({
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
           setItems((prev) =>
             prev.map((item) =>
-              placeholders.find((p) => p.preview === item.preview)
+              matchesPlaceholder(placeholders, item)
                 ? {
                     ...item,
                     status: "error",
@@ -98,42 +216,35 @@ export function ImageUploadField({
 
         setItems((prev) => {
           const updated = [...prev];
-          let urlIdx = 0;
-          for (let i = 0; i < updated.length; i++) {
-            if (placeholders.find((p) => p.preview === updated[i].preview)) {
-              updated[i] = {
-                ...updated[i],
-                url: urls[urlIdx++] ?? null,
-                status: "done",
-              };
+          for (let i = 0; i < placeholders.length; i++) {
+            const idx = updated.findIndex(
+              (u) => u.preview === placeholders[i].preview,
+            );
+            if (idx !== -1) {
+              updated[idx] = { ...updated[idx], url: urls[i], status: "done" };
             }
           }
-          return updated;
-        });
-
-        // Notify parent with all done URLs
-        setItems((current) => {
-          const doneUrls = current
-            .filter((i) => i.status === "done" && i.url)
-            .map((i) => i.url as string);
+          const doneUrls = updated
+            .filter((item) => item.status === "done" && item.url)
+            .map((item) => item.url as string);
           onChange(doneUrls);
-          return current;
+          return updated;
         });
       } catch {
         setItems((prev) =>
           prev.map((item) =>
-            placeholders.find((p) => p.preview === item.preview)
+            matchesPlaceholder(placeholders, item)
               ? { ...item, status: "error", errorMsg: "Network error" }
               : item,
           ),
         );
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [items, maxFiles, onChange],
   );
 
   function removeItem(preview: string) {
-    URL.revokeObjectURL(preview);
     setItems((prev) => {
       const updated = prev.filter((i) => i.preview !== preview);
       const doneUrls = updated
@@ -154,18 +265,78 @@ export function ImageUploadField({
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       uploadFiles(e.target.files);
-      // Reset so same file can be re-added
       e.target.value = "";
     }
+  }
+
+  async function openPicker() {
+    setPickerOpen(true);
+    setSelected(new Set());
+    setLibraryLoading(true);
+    try {
+      const res = await fetch("/api/uploads?limit=100");
+      const data = (await res.json()) as { uploads: UploadRecord[] };
+      setLibrary(data.uploads ?? []);
+    } catch {
+      setLibrary([]);
+    } finally {
+      setLibraryLoading(false);
+    }
+  }
+
+  function toggleSelect(url: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) {
+        next.delete(url);
+      } else {
+        next.add(url);
+      }
+      return next;
+    });
+  }
+
+  function confirmPicker() {
+    const doneCount = items.filter((i) => i.status === "done").length;
+    const remaining = maxFiles - doneCount;
+    const toAdd = Array.from(selected).slice(0, remaining);
+
+    if (!toAdd.length) {
+      setPickerOpen(false);
+      return;
+    }
+
+    const newItems: UploadedImage[] = toAdd.map((url) => {
+      const record = library.find((r) => r.r2Url === url);
+      return {
+        preview: url,
+        url,
+        status: "done",
+        fileName: record?.fileName ?? "image",
+      };
+    });
+
+    setItems((prev) => {
+      const updated = [...prev, ...newItems];
+      const doneUrls = updated
+        .filter((i) => i.status === "done" && i.url)
+        .map((i) => i.url as string);
+      onChange(doneUrls);
+      return updated;
+    });
+
+    setPickerOpen(false);
   }
 
   const doneCount = items.filter((i) => i.status === "done").length;
   const canAddMore = doneCount < maxFiles && !disabled;
   const hasItems = items.length > 0;
+  const addedUrls = new Set(
+    items.map((i) => i.url).filter(Boolean) as string[],
+  );
 
   return (
     <div className="space-y-3">
-      {/* Drop zone / add button */}
       {canAddMore && (
         <div
           role="button"
@@ -211,7 +382,20 @@ export function ImageUploadField({
         </div>
       )}
 
-      {/* Thumbnails grid */}
+      {canAddMore && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={openPicker}
+          disabled={disabled}
+        >
+          <FolderOpen className="size-4 mr-2" />
+          Pilih dari upload sebelumnya
+        </Button>
+      )}
+
       {hasItems && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {items.map((item) => (
@@ -228,15 +412,11 @@ export function ImageUploadField({
                   item.status !== "done" && "opacity-50",
                 )}
               />
-
-              {/* Loading overlay */}
               {item.status === "uploading" && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <Loader2 className="size-5 text-white animate-spin" />
                 </div>
               )}
-
-              {/* Error overlay */}
               {item.status === "error" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/50 p-1">
                   <AlertCircle className="size-4 text-white" />
@@ -245,8 +425,6 @@ export function ImageUploadField({
                   </p>
                 </div>
               )}
-
-              {/* Remove button */}
               {(item.status === "done" || item.status === "error") && (
                 <button
                   type="button"
@@ -261,6 +439,50 @@ export function ImageUploadField({
           ))}
         </div>
       )}
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Upload Sebelumnya</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <LibraryContent
+              loading={libraryLoading}
+              library={library}
+              addedUrls={addedUrls}
+              selected={selected}
+              onToggle={toggleSelect}
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              {selected.size > 0
+                ? `${selected.size} dipilih`
+                : "Klik gambar untuk memilih"}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPickerOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={selected.size === 0}
+                onClick={confirmPicker}
+              >
+                Tambahkan ({selected.size})
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
