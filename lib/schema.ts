@@ -25,3 +25,12 @@ export const images = sqliteTable("images", {
   height: real("height"),
   createdAt: integer("created_at").notNull(),
 });
+
+export const uploads = sqliteTable("uploads", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  r2Url: text("r2_url").notNull(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
