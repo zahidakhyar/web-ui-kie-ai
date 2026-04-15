@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { mutate } from "swr";
 import { toast } from "sonner";
 import { GeneratorForm } from "@/components/generator/GeneratorForm";
 import { GenerationProgress } from "@/components/generator/GenerationProgress";
@@ -34,6 +35,8 @@ export default function HomePage() {
       toast.success(
         `Generated ${images.length} image${images.length !== 1 ? "s" : ""}!`,
       );
+      // Refresh the credits display in the header
+      mutate("/api/credits");
     },
     [],
   );

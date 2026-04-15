@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { tasks, images } from "@/lib/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
+import { deleteImage } from "@/lib/r2";
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,19 +52,53 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// DELETE a task and its images
+// DELETE a task (or batch of tasks) and their images
 export async function DELETE(request: NextRequest) {
   try {
-    const { taskId } = (await request.json()) as { taskId: string };
-    if (!taskId) {
+    const body = (await request.json()) as {
+      taskId?: string;
+      taskIds?: string[];
+    };
+
+    // Normalise to an array of task IDs
+    const ids: string[] = [];
+    if (body.taskIds?.length) {
+      ids.push(...body.taskIds);
+    } else if (body.taskId) {
+      ids.push(body.taskId);
+    }
+
+    if (ids.length === 0) {
       return NextResponse.json(
-        { error: "taskId is required" },
+        { error: "taskId or taskIds is required" },
         { status: 400 },
       );
     }
 
-    await db.delete(images).where(eq(images.taskId, taskId));
-    await db.delete(tasks).where(eq(tasks.taskId, taskId));
+    // Fetch all images so we can remove them from R2
+    const taskImages = await db.query.images.findMany({
+      where: inArray(images.taskId, ids),
+    });
+
+    // Delete from R2 (best-effort — log failures but don't abort)
+    await Promise.allSettled(
+      taskImages.map(async (img) => {
+        try {
+          const key = new URL(img.r2Url).pathname.slice(1);
+          await deleteImage(key);
+        } catch (err) {
+          console.error(
+            "[DELETE /api/gallery] R2 delete failed",
+            img.r2Url,
+            err,
+          );
+        }
+      }),
+    );
+
+    // Delete from DB
+    await db.delete(images).where(inArray(images.taskId, ids));
+    await db.delete(tasks).where(inArray(tasks.taskId, ids));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

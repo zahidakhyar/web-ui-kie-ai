@@ -1,8 +1,9 @@
 "use client";
 
 import useSWRInfinite from "swr/infinite";
-import { useCallback } from "react";
-import { Loader2, ImageOff } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Loader2, ImageOff, CheckSquare, X, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageCard } from "./ImageCard";
@@ -30,6 +31,12 @@ export function GalleryGrid() {
       revalidateFirstPage: true,
     });
 
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [batchDeleting, setBatchDeleting] = useState(false);
+
   const allItems = data ? data.flatMap((p) => p.items) : [];
   const isLoadingMore = isValidating && size > (data?.length ?? 0);
   const isEmpty = !isLoading && allItems.length === 0;
@@ -43,6 +50,45 @@ export function GalleryGrid() {
   const handleDelete = useCallback(() => {
     mutate();
   }, [mutate]);
+
+  const handleToggleSelect = useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleExitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedTaskIds(new Set());
+  }, []);
+
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedTaskIds.size === 0) return;
+    setBatchDeleting(true);
+    try {
+      const res = await fetch("/api/gallery", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskIds: Array.from(selectedTaskIds) }),
+      });
+      if (!res.ok) throw new Error("Batch delete failed");
+      toast.success(
+        `Deleted ${selectedTaskIds.size} image${selectedTaskIds.size !== 1 ? "s" : ""}`,
+      );
+      handleExitSelection();
+      mutate();
+    } catch {
+      toast.error("Failed to delete selected images");
+    } finally {
+      setBatchDeleting(false);
+    }
+  }, [selectedTaskIds, handleExitSelection, mutate]);
 
   if (isLoading) {
     return (
@@ -70,6 +116,39 @@ export function GalleryGrid() {
 
   return (
     <div className="space-y-6">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {flatImages.length} image{flatImages.length !== 1 ? "s" : ""}
+        </p>
+        {!selectionMode ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setSelectionMode(true)}
+          >
+            <CheckSquare className="size-3.5" />
+            Select
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {selectedTaskIds.size} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={handleExitSelection}
+            >
+              <X className="size-3.5" />
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {flatImages.map(({ task, image }) => (
           <ImageCard
@@ -77,6 +156,9 @@ export function GalleryGrid() {
             task={task}
             image={image}
             onDelete={handleDelete}
+            selectionMode={selectionMode}
+            isSelected={selectedTaskIds.has(task.taskId)}
+            onToggleSelect={handleToggleSelect}
           />
         ))}
       </div>
@@ -95,6 +177,29 @@ export function GalleryGrid() {
             ) : (
               "Load more"
             )}
+          </Button>
+        </div>
+      )}
+
+      {/* Floating batch-delete action bar */}
+      {selectionMode && selectedTaskIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-background border border-border shadow-lg px-4 py-2">
+          <span className="text-sm font-medium">
+            {selectedTaskIds.size} selected
+          </span>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="rounded-full gap-1.5"
+            onClick={handleBatchDelete}
+            disabled={batchDeleting}
+          >
+            {batchDeleting ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="size-3.5" />
+            )}
+            Delete
           </Button>
         </div>
       )}
