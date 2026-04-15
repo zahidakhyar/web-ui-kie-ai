@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { GeneratedImage, TaskWithImages } from "@/types";
 import { getModelById } from "@/lib/models";
@@ -99,14 +100,13 @@ export function ImageCard({
         }
       >
         {/* Image */}
-        <div className="aspect-square overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="aspect-square overflow-hidden relative">
+          <Image
             src={image.r2Url}
             alt={task.prompt}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            decoding="async"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+            className="object-cover"
           />
         </div>
 
@@ -202,11 +202,13 @@ export function ImageCard({
         <DialogContent className="max-w-4xl p-0 overflow-hidden">
           <DialogTitle className="sr-only">{task.prompt}</DialogTitle>
           <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={image.r2Url}
               alt={task.prompt}
+              width={1024}
+              height={1024}
               className="w-full h-auto max-h-[85vh] object-contain"
+              priority
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
               <p className="text-white text-sm line-clamp-3">{task.prompt}</p>
