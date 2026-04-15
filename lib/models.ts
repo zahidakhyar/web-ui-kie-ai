@@ -54,7 +54,7 @@ export const MODELS: ModelConfig[] = [
         type: "boolean",
         required: false,
         description: "Enable content safety filter.",
-        default: true,
+        default: false,
       },
       {
         key: "image_urls",
