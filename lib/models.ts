@@ -15,8 +15,8 @@ export const MODELS: ModelConfig[] = [
         type: "image-upload",
         required: true,
         description:
-          "Upload the image you want to edit. Supported formats: JPEG, PNG, WebP (max 10MB).",
-        maxFiles: 1,
+          "Upload the image you want to edit. Supported formats: JPEG, PNG, WebP (max 10MB). You can upload up to 5 images.",
+        maxFiles: 5,
       },
       {
         key: "prompt",
