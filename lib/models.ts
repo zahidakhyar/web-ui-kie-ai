@@ -2,6 +2,71 @@ import { ModelConfig } from "@/types";
 
 export const MODELS: ModelConfig[] = [
   {
+    id: "seedream/4.5-edit",
+    name: "SeeDream 4.5 Edit",
+    description:
+      "Advanced image editing model. Edit and transform existing images with AI-powered precision. Outputs 2K (basic) or 4K (high) images.",
+    provider: "KIE.ai",
+    tags: ["image-editing", "edit", "high-quality"],
+    parameters: [
+      {
+        key: "image_urls",
+        label: "Image to Edit",
+        type: "image-upload",
+        required: true,
+        description:
+          "Upload the image you want to edit. Supported formats: JPEG, PNG, WebP (max 10MB).",
+        maxFiles: 1,
+      },
+      {
+        key: "prompt",
+        label: "Edit Instructions",
+        type: "textarea",
+        required: true,
+        description:
+          "Describe the changes you want to make to the image (max 3000 chars).",
+      },
+      {
+        key: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "aspect-ratio",
+        required: true,
+        description: "Choose the dimensions of your output image.",
+        options: [
+          { label: "1:1 (Square)", value: "1:1" },
+          { label: "4:3 (Landscape)", value: "4:3" },
+          { label: "3:4 (Portrait)", value: "3:4" },
+          { label: "16:9 (Widescreen)", value: "16:9" },
+          { label: "9:16 (Stories)", value: "9:16" },
+          { label: "2:3", value: "2:3" },
+          { label: "3:2", value: "3:2" },
+          { label: "21:9 (Ultrawide)", value: "21:9" },
+        ],
+        default: "1:1",
+      },
+      {
+        key: "quality",
+        label: "Quality",
+        type: "select",
+        required: true,
+        description: "Basic outputs 2K images, High outputs 4K images.",
+        options: [
+          { label: "Basic (2K)", value: "basic" },
+          { label: "High (4K)", value: "high" },
+        ],
+        default: "basic",
+      },
+      {
+        key: "nsfw_checker",
+        label: "Content Safety Filter",
+        type: "boolean",
+        required: false,
+        description: "Enable content safety filter.",
+        default: false,
+      },
+    ],
+  },
+  {
     id: "seedream/4.5-text-to-image",
     name: "SeeDream 4.5",
     description:
