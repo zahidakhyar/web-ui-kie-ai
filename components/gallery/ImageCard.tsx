@@ -104,8 +104,9 @@ export function ImageCard({
           <img
             src={image.r2Url}
             alt={task.prompt}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
           />
         </div>
 

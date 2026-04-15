@@ -121,7 +121,7 @@ function LibraryContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(record.r2Url)}
             className={cn(
-              "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
+              "relative aspect-square rounded-md overflow-hidden border-2 transition-colors",
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -130,6 +130,8 @@ function LibraryContent({
               src={record.r2Url}
               alt={record.fileName}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             {isSelected && (
               <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
@@ -194,7 +196,7 @@ function GalleryPickerContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(img.r2Url)}
             className={cn(
-              "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
+              "relative aspect-square rounded-md overflow-hidden border-2 transition-colors",
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -203,6 +205,8 @@ function GalleryPickerContent({
               src={img.r2Url}
               alt={img.prompt}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             {isSelected && (
               <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
