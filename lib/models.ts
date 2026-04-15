@@ -238,6 +238,41 @@ export const MODELS: ModelConfig[] = [
       },
     ],
   },
+  {
+    id: "grok-imagine/image-to-image",
+    name: "Grok Imagine",
+    description:
+      "Advanced image-to-image generation model. Transform and enhance images using AI. Reference uploaded images with @image(n) in your prompt.",
+    provider: "KIE.ai",
+    tags: ["image-to-image", "image-transformation", "edit"],
+    parameters: [
+      {
+        key: "image_urls",
+        label: "Reference Images",
+        type: "image-upload",
+        required: true,
+        description:
+          "Upload reference images to transform. Supported formats: JPEG, PNG, WebP (max 10MB). Reference in prompt as @image1, @image2, etc.",
+        maxFiles: 5,
+      },
+      {
+        key: "prompt",
+        label: "Transformation Prompt",
+        type: "textarea",
+        required: false,
+        description:
+          "Describe how you want to transform the image. Reference images in your prompt using @image(n) format (e.g., '@image(1) in a sunset over the ocean'). Max 390000 chars.",
+      },
+      {
+        key: "nsfw_checker",
+        label: "Content Safety Filter",
+        type: "boolean",
+        required: false,
+        description: "Enable content safety filter.",
+        default: false,
+      },
+    ],
+  },
 ];
 
 export function getModelById(id: string): ModelConfig | undefined {
