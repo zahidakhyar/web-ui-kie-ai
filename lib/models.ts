@@ -339,6 +339,84 @@ export const MODELS: ModelConfig[] = [
       },
     ],
   },
+  {
+    id: "nano-banana-2",
+    name: "Nano Banana 2",
+    description:
+      "Versatile content generation model supporting both text-to-image and image-to-image transformation. Supports up to 14 reference images with flexible aspect ratios and resolutions up to 4K.",
+    provider: "KIE.ai",
+    tags: ["text-to-image", "image-to-image", "versatile"],
+    parameters: [
+      {
+        key: "prompt",
+        label: "Prompt",
+        type: "textarea",
+        required: true,
+        description:
+          "Text description of the image you want to generate or how to transform input images (max 20000 chars).",
+      },
+      {
+        key: "image_input",
+        label: "Reference Images",
+        type: "image-upload",
+        required: false,
+        description:
+          "Upload reference images for image transformation. Supported formats: JPEG, PNG, WebP (max 30MB per file). You can upload up to 14 images.",
+        maxFiles: 14,
+      },
+      {
+        key: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "aspect-ratio",
+        required: false,
+        description: "Aspect ratio of the generated image.",
+        options: [
+          { label: "1:1 (Square)", value: "1:1" },
+          { label: "1:4", value: "1:4" },
+          { label: "1:8", value: "1:8" },
+          { label: "2:3", value: "2:3" },
+          { label: "3:2", value: "3:2" },
+          { label: "3:4 (Portrait)", value: "3:4" },
+          { label: "4:1", value: "4:1" },
+          { label: "4:3 (Landscape)", value: "4:3" },
+          { label: "4:5", value: "4:5" },
+          { label: "5:4", value: "5:4" },
+          { label: "8:1", value: "8:1" },
+          { label: "9:16 (Stories)", value: "9:16" },
+          { label: "16:9 (Widescreen)", value: "16:9" },
+          { label: "21:9 (Ultrawide)", value: "21:9" },
+          { label: "Auto", value: "auto" },
+        ],
+        default: "auto",
+      },
+      {
+        key: "resolution",
+        label: "Resolution",
+        type: "select",
+        required: false,
+        description:
+          "Resolution of the generated image. Higher resolutions take longer to generate.",
+        options: [
+          { label: "1K", value: "1K" },
+          { label: "2K", value: "2K" },
+          { label: "4K", value: "4K" },
+        ],
+        default: "1K",
+      },
+      {
+        key: "output_format",
+        label: "Output Format",
+        type: "select",
+        required: false,
+        description: "Format of the output image.",
+        options: [
+          { label: "JPG", value: "jpg" },
+          { label: "PNG", value: "png" },
+        ],
+        default: "jpg",
+      },
+    ],
+  },
 ];
 
 export function getModelById(id: string): ModelConfig | undefined {
