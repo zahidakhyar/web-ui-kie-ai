@@ -147,7 +147,6 @@ export const MODELS: ModelConfig[] = [
         required: true,
         description:
           "Text prompt for image generation. Supports Chinese and English (max 5000 chars).",
-        default: "turn image into a pencil drawing",
       },
       {
         key: "input_urls",
@@ -199,7 +198,7 @@ export const MODELS: ModelConfig[] = [
         min: 1,
         max: 12,
         step: 1,
-        default: 4,
+        default: 1,
       },
       {
         key: "enable_sequential",
