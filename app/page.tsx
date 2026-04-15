@@ -48,6 +48,10 @@ export default function HomePage() {
     toast.error(msg);
   }, []);
 
+  const handleDelete = useCallback((taskId: string) => {
+    setActiveTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
@@ -114,6 +118,7 @@ export default function HomePage() {
                   taskId={task.taskId}
                   onComplete={(images) => handleComplete(task.taskId, images)}
                   onError={(msg) => handleError(task.taskId, msg)}
+                  onDelete={() => handleDelete(task.taskId)}
                 />
               ))}
             </div>
