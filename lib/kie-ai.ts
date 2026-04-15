@@ -48,3 +48,26 @@ export async function queryTask(taskId: string): Promise<KieQueryResponse> {
 
   return res.json() as Promise<KieQueryResponse>;
 }
+
+export async function getCredits(): Promise<number> {
+  const res = await fetch(`${KIE_API_BASE}/chat/credit`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`KIE API error ${res.status}: ${text}`);
+  }
+
+  const json = (await res.json()) as {
+    code: number;
+    msg: string;
+    data: number;
+  };
+  if (json.code !== 200) {
+    throw new Error(`KIE API error: ${json.msg}`);
+  }
+
+  return json.data;
+}

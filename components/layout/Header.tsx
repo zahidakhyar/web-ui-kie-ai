@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Wand2, Images } from "lucide-react";
+import { Moon, Sun, Wand2, Images, Coins } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,18 @@ const NAV = [
 export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const [credits, setCredits] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/credits")
+      .then((r) => r.json())
+      .then((data: { credits?: number }) => {
+        if (data.credits !== undefined) setCredits(data.credits);
+      })
+      .catch(() => {
+        /* silently fail */
+      });
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -46,7 +59,13 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {credits !== null && (
+            <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-xs font-medium">
+              <Coins className="size-3.5 text-yellow-500" />
+              <span>{credits.toLocaleString()} credits</span>
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
