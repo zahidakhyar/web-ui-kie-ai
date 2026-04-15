@@ -88,6 +88,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
       onTaskCreated(data.taskId as string);
       toast.success("Generation started!");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -99,31 +100,33 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
   const isDisabled = disabled || loading;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Model</p>
-        <ModelSelector
-          value={modelId}
-          onChange={handleModelChange}
-          disabled={isDisabled}
-        />
-      </div>
-
-      <Separator />
-
-      <div className="space-y-5">
-        {model?.parameters.map((param) => (
-          <ParameterField
-            key={param.key}
-            param={param}
-            value={
-              values[param.key] ??
-              (param.type === "image-upload" ? [] : (param.default ?? ""))
-            }
-            onChange={handleValueChange}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="space-y-6 overflow-y-auto max-h-[60vh] pr-1">
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Model</p>
+          <ModelSelector
+            value={modelId}
+            onChange={handleModelChange}
             disabled={isDisabled}
           />
-        ))}
+        </div>
+
+        <Separator />
+
+        <div className="space-y-5">
+          {model?.parameters.map((param) => (
+            <ParameterField
+              key={param.key}
+              param={param}
+              value={
+                values[param.key] ??
+                (param.type === "image-upload" ? [] : (param.default ?? ""))
+              }
+              onChange={handleValueChange}
+              disabled={isDisabled}
+            />
+          ))}
+        </div>
       </div>
 
       <Button
