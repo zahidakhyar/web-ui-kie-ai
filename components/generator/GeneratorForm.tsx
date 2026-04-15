@@ -71,12 +71,21 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
       }
     }
 
+    // Auto-randomize seed if model has a seed parameter
+    const submitParams = { ...values };
+    const seedParam = model.parameters.find((p) => p.key === "seed");
+    if (seedParam) {
+      const randomSeed = Math.floor(Math.random() * 2147483647) + 1;
+      submitParams.seed = randomSeed;
+      setValues((prev) => ({ ...prev, seed: randomSeed }));
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelId, params: values }),
+        body: JSON.stringify({ modelId, params: submitParams }),
       });
 
       const data = await res.json();
