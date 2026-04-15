@@ -217,6 +217,7 @@ export const MODELS: ModelConfig[] = [
         description:
           "Set a seed for reproducible results. Using the same seed and prompt produces consistent outputs.",
         min: 0,
+        max: 2147483647,
         step: 1,
         default: 0,
       },
