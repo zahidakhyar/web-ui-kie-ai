@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Check,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,13 +126,12 @@ function LibraryContent({
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={record.r2Url}
               alt={record.fileName}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
+              fill
+              sizes="(max-width: 640px) 33vw, 25vw"
+              className="object-cover"
             />
             {isSelected && (
               <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
@@ -200,13 +200,12 @@ function GalleryPickerContent({
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={img.r2Url}
               alt={img.prompt}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
+              fill
+              sizes="(max-width: 640px) 33vw, 25vw"
+              className="object-cover"
             />
             {isSelected && (
               <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
