@@ -20,6 +20,7 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       let closed = false;
+      let timeoutId: ReturnType<typeof setTimeout>;
 
       const send = (data: object) => {
         if (closed) return;
@@ -32,10 +33,13 @@ export async function GET(
         }
       };
 
+      // Declared with let so close() can reference it before assignment
+      let onUpdate: (updatedTaskId: string) => Promise<void>;
+
       const close = () => {
         if (closed) return;
         closed = true;
-        taskEvents.removeListener("task:updated", onUpdate);
+        if (onUpdate) taskEvents.removeListener("task:updated", onUpdate);
         clearTimeout(timeoutId);
         try {
           controller.close();
@@ -63,7 +67,7 @@ export async function GET(
         return;
       }
 
-      const onUpdate = async (updatedTaskId: string) => {
+      onUpdate = async (updatedTaskId: string) => {
         if (updatedTaskId !== taskId || closed) return;
 
         const updatedTask = await db.query.tasks.findFirst({
@@ -86,7 +90,7 @@ export async function GET(
       taskEvents.on("task:updated", onUpdate);
 
       // Auto-close after 10 minutes
-      const timeoutId = setTimeout(
+      timeoutId = setTimeout(
         () => {
           send({ type: "timeout" });
           close();
