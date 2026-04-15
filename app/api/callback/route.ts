@@ -4,6 +4,7 @@ import { tasks, images } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { uploadImageFromUrl, buildR2Key } from "@/lib/r2";
 import { KieTaskRecord } from "@/types";
+import { taskEvents } from "@/lib/task-events";
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,6 +77,8 @@ export async function POST(request: NextRequest) {
           completedAt: record.completeTime ?? now,
         })
         .where(eq(tasks.taskId, record.taskId));
+
+      taskEvents.emit("task:updated", record.taskId);
     } else if (record.state === "fail") {
       await db
         .update(tasks)
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest) {
           errorMsg: record.failMsg ?? "Generation failed",
         })
         .where(eq(tasks.taskId, record.taskId));
+
+      taskEvents.emit("task:updated", record.taskId);
     }
 
     return NextResponse.json({ ok: true });
