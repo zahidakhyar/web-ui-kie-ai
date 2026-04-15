@@ -132,6 +132,122 @@ export const MODELS: ModelConfig[] = [
       },
     ],
   },
+  {
+    id: "wan/2-7-image",
+    name: "Wan 2.7 Image",
+    description:
+      "Versatile image generation and transformation model. Supports text-to-image and image editing with gallery mode, thinking mode, and resolutions up to 2K.",
+    provider: "KIE.ai",
+    tags: ["text-to-image", "image-editing", "multi-output"],
+    parameters: [
+      {
+        key: "prompt",
+        label: "Prompt",
+        type: "textarea",
+        required: true,
+        description:
+          "Text prompt for image generation. Supports Chinese and English (max 5000 chars).",
+        default: "turn image into a pencil drawing",
+      },
+      {
+        key: "input_urls",
+        label: "Input Images",
+        type: "image-upload",
+        required: false,
+        description:
+          "Upload reference images for image-to-image transformation. Supported formats: JPEG, PNG, WebP, JPG (max 10MB each).",
+        maxFiles: 5,
+      },
+      {
+        key: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "aspect-ratio",
+        required: false,
+        description: "Aspect ratio of the generated image.",
+        options: [
+          { label: "1:1 (Square)", value: "1:1" },
+          { label: "4:3 (Landscape)", value: "4:3" },
+          { label: "3:4 (Portrait)", value: "3:4" },
+          { label: "16:9 (Widescreen)", value: "16:9" },
+          { label: "9:16 (Stories)", value: "9:16" },
+          { label: "1:8", value: "1:8" },
+          { label: "8:1", value: "8:1" },
+          { label: "21:9 (Ultrawide)", value: "21:9" },
+        ],
+        default: "1:1",
+      },
+      {
+        key: "resolution",
+        label: "Resolution",
+        type: "select",
+        required: false,
+        description:
+          "Resolution of the generated image. Higher resolutions take longer to generate.",
+        options: [
+          { label: "1K", value: "1K" },
+          { label: "2K", value: "2K" },
+        ],
+        default: "2K",
+      },
+      {
+        key: "n",
+        label: "Number of Images",
+        type: "number",
+        required: false,
+        description:
+          "Number of images to generate (1-4). In gallery mode, this is the maximum (1-12).",
+        min: 1,
+        max: 12,
+        step: 1,
+        default: 4,
+      },
+      {
+        key: "enable_sequential",
+        label: "Gallery Mode",
+        type: "boolean",
+        required: false,
+        description:
+          "Enable gallery mode to generate a sequence of related images.",
+        default: false,
+      },
+      {
+        key: "thinking_mode",
+        label: "Thinking Mode",
+        type: "boolean",
+        required: false,
+        description:
+          "Enhances reasoning for higher-quality outputs. Only available when gallery mode is off and no images are uploaded.",
+        default: false,
+      },
+      {
+        key: "seed",
+        label: "Seed",
+        type: "number",
+        required: false,
+        description:
+          "Set a seed for reproducible results. Using the same seed and prompt produces consistent outputs.",
+        min: 0,
+        step: 1,
+        default: 0,
+      },
+      {
+        key: "watermark",
+        label: "Watermark",
+        type: "boolean",
+        required: false,
+        description: "Add a watermark identifier to the generated image.",
+        default: false,
+      },
+      {
+        key: "nsfw_checker",
+        label: "Content Safety Filter",
+        type: "boolean",
+        required: false,
+        description: "Enable content safety filter.",
+        default: false,
+      },
+    ],
+  },
 ];
 
 export function getModelById(id: string): ModelConfig | undefined {
