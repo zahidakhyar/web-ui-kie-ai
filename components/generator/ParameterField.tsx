@@ -63,7 +63,7 @@ export function ParameterField({
           rows={4}
           disabled={disabled}
           maxLength={param.key === "prompt" ? 3000 : undefined}
-          className="resize-none"
+          className="resize-none max-h-40 overflow-y-auto"
         />
       )}
 
