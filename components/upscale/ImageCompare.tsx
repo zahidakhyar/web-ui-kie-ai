@@ -108,25 +108,28 @@ export function ImageCompare({
         />
       </div>
 
-      {/* Drag Divider Line */}
+      {/* Drag Divider Line (with wider touch target) */}
       <div
-        className="absolute top-0 bottom-0 w-[2px] bg-white cursor-ew-resize z-20 shadow-[0_0_10px_rgba(0,0,0,0.5)]"
+        className="absolute top-0 bottom-0 w-8 -ml-4 cursor-ew-resize z-20 select-none flex items-center justify-center"
         style={{ left: `${position}%` }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
+        {/* Divider line visual */}
+        <div className="absolute inset-y-0 w-0.5 bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
+        
         {/* Handle Button */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-9 rounded-full bg-white text-black shadow-xl flex items-center justify-center border border-border cursor-ew-resize hover:scale-105 active:scale-95 transition-transform z-30">
-          <ChevronsLeftRight className="size-4 shrink-0 text-zinc-700" />
+        <div className="absolute size-9 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center border-2 border-background cursor-ew-resize hover:scale-110 active:scale-95 transition-all duration-200 z-30">
+          <ChevronsLeftRight className="size-4 shrink-0" />
         </div>
       </div>
 
       {/* Overlay Badges */}
-      <div className="absolute left-4 top-4 z-10 rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur-md border border-white/10 pointer-events-none">
-        Original
+      <div className="absolute left-4 top-4 z-10 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-mono tracking-wider uppercase text-white backdrop-blur-md border border-white/10 pointer-events-none">
+        Before
       </div>
-      <div className="absolute right-4 top-4 z-10 rounded-full bg-primary/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur-md pointer-events-none">
-        Upscaled
+      <div className="absolute right-4 top-4 z-10 rounded-full bg-primary/95 px-2.5 py-0.5 text-[10px] font-mono tracking-wider uppercase text-primary-foreground shadow-sm pointer-events-none animate-pulse">
+        After
       </div>
     </div>
   );

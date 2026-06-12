@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Reveal } from '@/components/motion/Reveal';
 import { GalleryPicker } from '@/components/upscale/GalleryPicker';
 import { UpscaleProgress } from '@/components/upscale/UpscaleProgress';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,7 @@ export default function UpscalePage() {
   const [nsfwChecker, setNsfwChecker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -105,10 +108,16 @@ export default function UpscalePage() {
 
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave() {
+    setIsDragging(false);
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
+    setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleFileUpload(file);
   }
@@ -154,22 +163,16 @@ export default function UpscalePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       {/* Title */}
-      <div className="flex items-center gap-2.5 mb-8">
-        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-          <Maximize2 className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Crisp Upscale</h1>
-          <p className="text-xs text-muted-foreground/80 mt-0.5">
-            Enhance image resolution and details instantly.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Maximize2}
+        title="Crisp Upscale"
+        subtitle="Enhance resolution and detail in one click."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
         {/* Left side: Upload & Options */}
-        <div className="lg:sticky lg:top-[4.5rem] space-y-6">
-          <Card className="border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm">
+        <div className="lg:sticky lg:top-20 space-y-6">
+          <Card className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-sm shadow-primary/5">
             <CardHeader className="pb-4">
               <CardTitle className="text-sm font-semibold tracking-tight">
                 Control Panel
@@ -181,13 +184,13 @@ export default function UpscalePage() {
             <CardContent className="space-y-6">
               {/* Image Input Container */}
               <div className="space-y-3">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Input Image
                 </Label>
 
                 {selectedImage ? (
                   // Preview state
-                  <div className="relative aspect-square w-full rounded-xl overflow-hidden border border-border/60 bg-muted group shadow-inner">
+                  <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-border/60 bg-muted group shadow-inner">
                     <Image
                       src={selectedImage}
                       alt="Selected preview"
@@ -195,12 +198,12 @@ export default function UpscalePage() {
                       sizes="350px"
                       className="object-contain"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center duration-300">
                       <Button
                         type="button"
                         variant="destructive"
                         size="icon"
-                        className="rounded-full size-9 shadow-lg"
+                        className="rounded-full size-9 shadow-lg hover:scale-110 transition-transform"
                         onClick={() => setSelectedImage(null)}
                       >
                         <X className="size-4" />
@@ -211,10 +214,14 @@ export default function UpscalePage() {
                   // Empty state: drag-and-drop zone
                   <div
                     onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      'border-2 border-dashed border-border/60 hover:border-primary/50 transition-all rounded-xl aspect-square flex flex-col items-center justify-center text-center p-6 cursor-pointer bg-muted/10 hover:bg-muted/30 group',
+                      'border-2 border-dashed transition-all rounded-2xl aspect-square flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none active:scale-[0.99]',
+                      isDragging
+                        ? 'border-primary bg-primary/5 scale-[0.99]'
+                        : 'border-border/60 hover:border-primary/45 hover:bg-primary/5',
                       isUploading && 'pointer-events-none opacity-60',
                     )}
                   >
@@ -235,14 +242,14 @@ export default function UpscalePage() {
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2.5">
-                        <div className="size-10 rounded-full bg-muted flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <Upload className="size-5 text-muted-foreground/75" />
+                        <div className="size-10 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                          <Upload className="size-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-foreground">
+                          <p className="text-xs font-semibold text-foreground">
                             Drag & drop or click to upload
                           </p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-1">
+                          <p className="text-[10px] text-muted-foreground/60 mt-1.5">
                             PNG, JPG, WebP up to 10MB
                           </p>
                         </div>
@@ -261,19 +268,19 @@ export default function UpscalePage() {
 
               {/* Parameters / Options */}
               <div className="space-y-4 pt-4 border-t border-border/40">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
                   Configuration
                 </Label>
 
-                <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3">
+                <div className="flex items-center justify-between rounded-xl border border-border/40 bg-primary/5 p-3.5">
                   <div className="space-y-0.5">
                     <Label
                       htmlFor="nsfw-filter"
-                      className="text-xs font-medium cursor-pointer"
+                      className="text-xs font-semibold cursor-pointer text-foreground"
                     >
                       NSFW Filter
                     </Label>
-                    <p className="text-[10px] text-muted-foreground/80">
+                    <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
                       Filter inappropriate content.
                     </p>
                   </div>
@@ -282,6 +289,7 @@ export default function UpscalePage() {
                     checked={nsfwChecker}
                     onCheckedChange={setNsfwChecker}
                     disabled={isGenerating}
+                    className="data-[state=checked]:bg-primary"
                   />
                 </div>
               </div>
@@ -290,16 +298,16 @@ export default function UpscalePage() {
               <Button
                 onClick={handleUpscaleSubmit}
                 disabled={!selectedImage || isGenerating || isUploading}
-                className="w-full gap-2 h-10 text-xs font-medium"
+                className="w-full h-11 gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-primary-foreground font-medium hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10"
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Loader2 className="size-4 animate-spin text-primary-foreground" />
                     Starting Upscale...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="size-3.5" />
+                    <Sparkles className="size-4" />
                     Upscale Image
                   </>
                 )}
@@ -311,31 +319,33 @@ export default function UpscalePage() {
         {/* Right side: Tasks Queue & Results */}
         <div className="space-y-6">
           {activeTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-28 text-center space-y-4 rounded-xl border border-dashed border-border/60 bg-muted/5">
-              <div className="size-11 rounded-full bg-muted/60 flex items-center justify-center">
-                <Sparkles className="size-5 text-muted-foreground/50" />
+            <Reveal className="flex flex-col items-center justify-center py-24 text-center space-y-4 rounded-2xl border border-dashed border-border/60 bg-card/45 backdrop-blur-sm">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl size-12 animate-pulse" />
+                <div className="relative size-12 rounded-full bg-primary/10 flex items-center justify-center border border-primary/25">
+                  <Sparkles className="size-5 text-primary" />
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-muted-foreground">
+              <div className="space-y-1.5 max-w-sm">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
                   No active upscale tasks
-                </p>
-                <p className="text-xs text-muted-foreground/60 max-w-xs leading-relaxed">
-                  Select an image, configure filters, and click &quot;Upscale
-                  Image&quot; to enhance details.
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Select an image, configure filters, and click &quot;Upscale Image&quot; to enhance details.
                 </p>
               </div>
-            </div>
+            </Reveal>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-                  Tasks ({activeTasks.length})
+              <div className="sticky top-[4.5rem] z-30 flex items-center justify-between py-2.5 bg-background/80 backdrop-blur-md border-b border-border/40 rounded-xl px-3 mb-2">
+                <p className="text-xs font-mono text-muted-foreground tracking-wider">
+                  TASKS ({activeTasks.length})
                 </p>
                 {activeTasks.some((t) => t.done) && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-[10px] h-7 text-muted-foreground hover:text-foreground"
+                    className="text-xs h-7 text-primary hover:text-primary/85 hover:bg-primary/5 rounded-lg px-2.5 transition-colors"
                     onClick={() =>
                       setActiveTasks((prev) => prev.filter((t) => !t.done))
                     }
@@ -346,14 +356,15 @@ export default function UpscalePage() {
               </div>
 
               <div className="space-y-4">
-                {activeTasks.map((task) => (
-                  <UpscaleProgress
-                    key={task.taskId}
-                    taskId={task.taskId}
-                    onComplete={(images) => handleComplete(task.taskId, images)}
-                    onError={(msg) => handleError(task.taskId, msg)}
-                    onDelete={() => handleDelete(task.taskId)}
-                  />
+                {activeTasks.map((task, index) => (
+                  <Reveal key={task.taskId} delay={index * 0.08}>
+                    <UpscaleProgress
+                      taskId={task.taskId}
+                      onComplete={(images) => handleComplete(task.taskId, images)}
+                      onError={(msg) => handleError(task.taskId, msg)}
+                      onDelete={() => handleDelete(task.taskId)}
+                    />
+                  </Reveal>
                 ))}
               </div>
             </div>
