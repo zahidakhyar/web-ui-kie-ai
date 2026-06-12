@@ -112,9 +112,9 @@ export function UpscaleProgress({
   return (
     <Card
       className={cn(
-        'overflow-hidden transition-all border bg-card/40 backdrop-blur-sm',
-        state === 'fail' && 'border-destructive/30',
-        state === 'success' && 'border-emerald-500/20',
+        'overflow-hidden rounded-2xl transition-all border border-border/60 bg-card/45 backdrop-blur-sm shadow-sm',
+        state === 'fail' && 'border-destructive/30 bg-destructive/5',
+        state === 'success' && 'border-primary/30 shadow-primary/5',
       )}
     >
       <CardContent className="p-0">
@@ -146,7 +146,7 @@ export function UpscaleProgress({
           <div className="flex items-center gap-2 shrink-0">
             <Badge
               variant="outline"
-              className="text-[10px] font-mono border-border/60"
+              className="text-[10px] font-mono border-primary/10 px-2 py-0.5 rounded-md"
             >
               ID: {taskId.slice(0, 8)}
             </Badge>
@@ -154,7 +154,7 @@ export function UpscaleProgress({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                 onClick={onDelete}
                 title="Dismiss"
               >
@@ -173,7 +173,7 @@ export function UpscaleProgress({
                 <p className="text-sm font-medium text-foreground">
                   Enhancing details...
                 </p>
-                <p className="text-xs text-muted-foreground max-w-xs">
+                <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
                   {state === 'waiting'
                     ? 'Processing your image with recraft/crisp-upscale. This takes 15-45 seconds.'
                     : 'Waiting for other generations to complete.'}
@@ -183,7 +183,7 @@ export function UpscaleProgress({
           )}
 
           {state === 'fail' && task?.errorMsg && (
-            <div className="rounded-lg bg-destructive/5 border border-destructive/15 p-3.5 text-xs text-destructive leading-relaxed">
+            <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-3.5 text-xs text-destructive leading-relaxed">
               {task.errorMsg}
             </div>
           )}
@@ -195,7 +195,7 @@ export function UpscaleProgress({
               <div className="flex gap-2">
                 <Button
                   onClick={handleDownload}
-                  className="flex-1 gap-2 text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
+                  className="flex-1 gap-2 text-xs h-10 rounded-xl bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-primary-foreground font-semibold hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10"
                 >
                   <Download className="size-3.5" />
                   Download Upscaled Image
