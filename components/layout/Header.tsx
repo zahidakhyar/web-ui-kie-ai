@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Moon, Sun, Wand2, Images, Coins, Sparkles } from "lucide-react";
-import { useTheme } from "next-themes";
-import useSWR from "swr";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Coins, Images, Moon, Sparkles, Sun, Wand2 } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import useSWR from 'swr';
 
 const NAV = [
-  { href: "/", label: "Generate", icon: Wand2 },
-  { href: "/upscale", label: "Upscale", icon: Sparkles },
-  { href: "/gallery", label: "Gallery", icon: Images },
+  { href: '/', label: 'Generate', icon: Wand2 },
+  { href: '/upscale', label: 'Upscale', icon: Sparkles },
+  { href: '/gallery', label: 'Gallery', icon: Images },
 ];
 
 const fetcher = (url: string) =>
@@ -22,7 +22,7 @@ const fetcher = (url: string) =>
 export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { data } = useSWR<{ credits?: number }>("/api/credits", fetcher, {
+  const { data } = useSWR<{ credits?: number }>('/api/credits', fetcher, {
     revalidateOnFocus: false,
   });
   const credits = data?.credits ?? null;
@@ -46,8 +46,8 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "gap-1.5 h-8",
-                  pathname === href && "bg-muted text-foreground",
+                  'gap-1.5 h-8',
+                  pathname === href && 'bg-muted text-foreground',
                 )}
               >
                 <Icon className="size-3.5" />
@@ -68,7 +68,7 @@ export function Header() {
             variant="ghost"
             size="icon"
             className="size-8"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             aria-label="Toggle theme"
           >
             <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

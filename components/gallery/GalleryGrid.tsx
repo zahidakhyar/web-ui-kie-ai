@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import useSWRInfinite from "swr/infinite";
-import { useCallback, useState } from "react";
-import { Loader2, ImageOff, CheckSquare, X, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ImageCard } from "./ImageCard";
-import { GeneratedImage, TaskWithImages } from "@/types";
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { GeneratedImage, TaskWithImages } from '@/types';
+import { CheckSquare, ImageOff, Loader2, Trash2, X } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
+import useSWRInfinite from 'swr/infinite';
+import { ImageCard } from './ImageCard';
 
 interface GalleryPage {
   items: TaskWithImages[];
@@ -72,19 +72,19 @@ export function GalleryGrid() {
     if (selectedTaskIds.size === 0) return;
     setBatchDeleting(true);
     try {
-      const res = await fetch("/api/gallery", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/gallery', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskIds: Array.from(selectedTaskIds) }),
       });
-      if (!res.ok) throw new Error("Batch delete failed");
+      if (!res.ok) throw new Error('Batch delete failed');
       toast.success(
-        `Deleted ${selectedTaskIds.size} image${selectedTaskIds.size !== 1 ? "s" : ""}`,
+        `Deleted ${selectedTaskIds.size} image${selectedTaskIds.size !== 1 ? 's' : ''}`,
       );
       handleExitSelection();
       mutate();
     } catch {
-      toast.error("Failed to delete selected images");
+      toast.error('Failed to delete selected images');
     } finally {
       setBatchDeleting(false);
     }
@@ -119,7 +119,7 @@ export function GalleryGrid() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {flatImages.length} image{flatImages.length !== 1 ? "s" : ""}
+          {flatImages.length} image{flatImages.length !== 1 ? 's' : ''}
         </p>
         {!selectionMode ? (
           <Button
@@ -175,7 +175,7 @@ export function GalleryGrid() {
                 <Loader2 className="size-4 mr-2 animate-spin" /> Loading...
               </>
             ) : (
-              "Load more"
+              'Load more'
             )}
           </Button>
         </div>

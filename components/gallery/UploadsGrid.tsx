@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import useSWR from "swr";
-import Image from "next/image";
-import { useCallback, useState } from "react";
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import {
-  Loader2,
-  ImageOff,
   CheckSquare,
-  X,
-  Trash2,
   Download,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+  ImageOff,
+  Loader2,
+  Trash2,
+  X,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
 
 interface UploadRecord {
   id: number;
@@ -35,7 +35,7 @@ function formatBytes(bytes: number) {
 
 export function UploadsGrid() {
   const { data, isLoading, mutate } = useSWR<{ uploads: UploadRecord[] }>(
-    "/api/uploads?limit=100",
+    '/api/uploads?limit=100',
     fetcher,
   );
 
@@ -64,16 +64,16 @@ export function UploadsGrid() {
     async (id: number) => {
       setDeleting((prev) => new Set(prev).add(id));
       try {
-        const res = await fetch("/api/uploads", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/uploads', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uploadId: id }),
         });
-        if (!res.ok) throw new Error("Failed to delete");
-        toast.success("Upload deleted");
+        if (!res.ok) throw new Error('Failed to delete');
+        toast.success('Upload deleted');
         mutate();
       } catch {
-        toast.error("Failed to delete upload");
+        toast.error('Failed to delete upload');
       } finally {
         setDeleting((prev) => {
           const next = new Set(prev);
@@ -89,30 +89,30 @@ export function UploadsGrid() {
     if (selectedIds.size === 0) return;
     setBatchDeleting(true);
     try {
-      const res = await fetch("/api/uploads", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/uploads', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uploadIds: Array.from(selectedIds) }),
       });
-      if (!res.ok) throw new Error("Batch delete failed");
+      if (!res.ok) throw new Error('Batch delete failed');
       toast.success(
-        `Deleted ${selectedIds.size} upload${selectedIds.size !== 1 ? "s" : ""}`,
+        `Deleted ${selectedIds.size} upload${selectedIds.size !== 1 ? 's' : ''}`,
       );
       handleExitSelection();
       mutate();
     } catch {
-      toast.error("Failed to delete selected uploads");
+      toast.error('Failed to delete selected uploads');
     } finally {
       setBatchDeleting(false);
     }
   }, [selectedIds, handleExitSelection, mutate]);
 
   function handleDownload(record: UploadRecord) {
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = record.r2Url;
     a.download = record.fileName;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
     a.click();
   }
 
@@ -145,7 +145,7 @@ export function UploadsGrid() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {uploads.length} upload{uploads.length !== 1 ? "s" : ""}
+          {uploads.length} upload{uploads.length !== 1 ? 's' : ''}
         </p>
         {!selectionMode ? (
           <Button
@@ -182,22 +182,22 @@ export function UploadsGrid() {
           return (
             <div
               key={record.id}
-              role={selectionMode ? "button" : undefined}
+              role={selectionMode ? 'button' : undefined}
               tabIndex={selectionMode ? 0 : undefined}
               className={cn(
-                "group relative overflow-hidden rounded-lg bg-muted border transition-colors",
+                'group relative overflow-hidden rounded-lg bg-muted border transition-colors',
                 selectionMode
-                  ? "cursor-pointer"
-                  : "border-border/50 hover:border-primary/30",
+                  ? 'cursor-pointer'
+                  : 'border-border/50 hover:border-primary/30',
                 isSelected
-                  ? "border-primary ring-2 ring-primary/40"
-                  : "border-border/50",
+                  ? 'border-primary ring-2 ring-primary/40'
+                  : 'border-border/50',
               )}
               onClick={() => selectionMode && handleToggleSelect(record.id)}
               onKeyDown={
                 selectionMode
                   ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") {
+                      if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         handleToggleSelect(record.id);
                       }
@@ -220,16 +220,16 @@ export function UploadsGrid() {
               {selectionMode && (
                 <div
                   className={cn(
-                    "absolute inset-0 transition-colors",
-                    isSelected ? "bg-primary/20" : "bg-transparent",
+                    'absolute inset-0 transition-colors',
+                    isSelected ? 'bg-primary/20' : 'bg-transparent',
                   )}
                 >
                   <div
                     className={cn(
-                      "absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                      'absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-colors',
                       isSelected
-                        ? "bg-primary border-primary"
-                        : "bg-black/40 border-white/70",
+                        ? 'bg-primary border-primary'
+                        : 'bg-black/40 border-white/70',
                     )}
                   >
                     {isSelected && (

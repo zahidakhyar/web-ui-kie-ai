@@ -1,9 +1,9 @@
 import {
-  S3Client,
-  PutObjectCommand,
   DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function getR2Client(): S3Client {
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -12,12 +12,12 @@ function getR2Client(): S3Client {
 
   if (!accountId || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      "R2 credentials not set. Please configure R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY.",
+      'R2 credentials not set. Please configure R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY.',
     );
   }
 
   return new S3Client({
-    region: "auto",
+    region: 'auto',
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId,
@@ -26,7 +26,7 @@ function getR2Client(): S3Client {
   });
 }
 
-const BUCKET = process.env.R2_BUCKET_NAME ?? "ai-images";
+const BUCKET = process.env.R2_BUCKET_NAME ?? 'ai-images';
 const PUBLIC_URL = process.env.R2_PUBLIC_URL; // e.g., https://pub-xxx.r2.dev or custom domain
 
 /**
@@ -48,7 +48,7 @@ export async function uploadImageFromUrl(
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  const contentType = response.headers.get("content-type") ?? "image/webp";
+  const contentType = response.headers.get('content-type') ?? 'image/webp';
 
   await client.send(
     new PutObjectCommand({
@@ -60,7 +60,7 @@ export async function uploadImageFromUrl(
   );
 
   if (PUBLIC_URL) {
-    return `${PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+    return `${PUBLIC_URL.replace(/\/$/, '')}/${key}`;
   }
 
   // Fallback: generate a presigned URL (valid 7 days)
@@ -70,7 +70,7 @@ export async function uploadImageFromUrl(
     { expiresIn: 604800 },
   );
   // Return the object URL without query params as public URL
-  return presignedUrl.split("?")[0];
+  return presignedUrl.split('?')[0];
 }
 
 export async function deleteImage(key: string): Promise<void> {
@@ -103,7 +103,7 @@ export async function uploadBuffer(
   );
 
   if (PUBLIC_URL) {
-    return `${PUBLIC_URL.replace(/\/$/, "")}/${key}`;
+    return `${PUBLIC_URL.replace(/\/$/, '')}/${key}`;
   }
 
   const presignedUrl = await getSignedUrl(
@@ -111,13 +111,13 @@ export async function uploadBuffer(
     new PutObjectCommand({ Bucket: BUCKET, Key: key }),
     { expiresIn: 604800 },
   );
-  return presignedUrl.split("?")[0];
+  return presignedUrl.split('?')[0];
 }
 
 export function buildR2Key(
   taskId: string,
   index: number,
-  ext = "webp",
+  ext = 'webp',
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   return `images/${date}/${taskId}_${index}.${ext}`;

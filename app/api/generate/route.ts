@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { tasks } from "@/lib/schema";
-import { createTask } from "@/lib/kie-ai";
-import { getModelById } from "@/lib/models";
+import { db } from '@/lib/db';
+import { createTask } from '@/lib/kie-ai';
+import { getModelById } from '@/lib/models';
+import { tasks } from '@/lib/schema';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
 
     if (!modelId || !params) {
       return NextResponse.json(
-        { error: "modelId and params are required" },
+        { error: 'modelId and params are required' },
         { status: 400 },
       );
     }
 
     const model = getModelById(modelId);
     if (!model) {
-      return NextResponse.json({ error: "Unknown model" }, { status: 400 });
+      return NextResponse.json({ error: 'Unknown model' }, { status: 400 });
     }
 
     // Build callback URL from env or request origin
@@ -38,28 +38,28 @@ export async function POST(request: NextRequest) {
 
     if (kieResponse.code !== 200) {
       return NextResponse.json(
-        { error: kieResponse.msg ?? "Failed to create task" },
+        { error: kieResponse.msg ?? 'Failed to create task' },
         { status: 500 },
       );
     }
 
     const taskId = kieResponse.data.taskId;
-    const prompt = (params.prompt as string) ?? "";
+    const prompt = (params.prompt as string) ?? '';
 
     await db.insert(tasks).values({
       taskId,
       model: modelId,
       prompt,
       params: JSON.stringify(params),
-      status: "waiting",
+      status: 'waiting',
       createdAt: Date.now(),
     });
 
     return NextResponse.json({ taskId });
   } catch (err) {
-    console.error("[POST /api/generate]", err);
+    console.error('[POST /api/generate]', err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal server error" },
+      { error: err instanceof Error ? err.message : 'Internal server error' },
       { status: 500 },
     );
   }

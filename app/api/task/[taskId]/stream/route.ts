@@ -1,10 +1,10 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { tasks, images } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import { taskEvents } from "@/lib/task-events";
+import { db } from '@/lib/db';
+import { images, tasks } from '@/lib/schema';
+import { taskEvents } from '@/lib/task-events';
+import { eq } from 'drizzle-orm';
+import { NextRequest } from 'next/server';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
@@ -39,7 +39,7 @@ export async function GET(
       const close = () => {
         if (closed) return;
         closed = true;
-        if (onUpdate) taskEvents.removeListener("task:updated", onUpdate);
+        if (onUpdate) taskEvents.removeListener('task:updated', onUpdate);
         clearTimeout(timeoutId);
         try {
           controller.close();
@@ -50,19 +50,19 @@ export async function GET(
 
       // Send initial state
       const initialImages =
-        initialTask?.status === "success"
+        initialTask?.status === 'success'
           ? await db.query.images.findMany({
               where: eq(images.taskId, taskId),
             })
           : [];
 
       send({
-        type: "update",
+        type: 'update',
         task: initialTask ?? null,
         images: initialImages,
       });
 
-      if (initialTask?.status === "success" || initialTask?.status === "fail") {
+      if (initialTask?.status === 'success' || initialTask?.status === 'fail') {
         close();
         return;
       }
@@ -77,37 +77,37 @@ export async function GET(
           where: eq(images.taskId, taskId),
         });
 
-        send({ type: "update", task: updatedTask ?? null, images: taskImages });
+        send({ type: 'update', task: updatedTask ?? null, images: taskImages });
 
         if (
-          updatedTask?.status === "success" ||
-          updatedTask?.status === "fail"
+          updatedTask?.status === 'success' ||
+          updatedTask?.status === 'fail'
         ) {
           close();
         }
       };
 
-      taskEvents.on("task:updated", onUpdate);
+      taskEvents.on('task:updated', onUpdate);
 
       // Auto-close after 10 minutes
       timeoutId = setTimeout(
         () => {
-          send({ type: "timeout" });
+          send({ type: 'timeout' });
           close();
         },
         10 * 60 * 1000,
       );
 
-      request.signal.addEventListener("abort", close);
+      request.signal.addEventListener('abort', close);
     },
   });
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

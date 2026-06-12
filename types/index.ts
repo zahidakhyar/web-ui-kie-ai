@@ -1,4 +1,4 @@
-export type TaskState = "waiting" | "success" | "fail" | "pending";
+export type TaskState = 'waiting' | 'success' | 'fail' | 'pending';
 
 export interface GenerationTask {
   id: number;
@@ -44,7 +44,7 @@ export interface KieCreateTaskResponse {
 export interface KieTaskRecord {
   taskId: string;
   model: string;
-  state: "waiting" | "success" | "fail";
+  state: 'waiting' | 'success' | 'fail';
   param: string; // JSON string
   resultJson: string | null; // JSON string: { resultUrls: string[] }
   failCode: string | null;
@@ -62,13 +62,13 @@ export interface KieQueryResponse {
 
 // Model parameter types
 export type ParameterType =
-  | "text"
-  | "textarea"
-  | "select"
-  | "number"
-  | "boolean"
-  | "aspect-ratio"
-  | "image-upload";
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'number'
+  | 'boolean'
+  | 'aspect-ratio'
+  | 'image-upload';
 
 export interface SelectOption {
   label: string;

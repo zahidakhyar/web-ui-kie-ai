@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { mutate } from "swr";
-import { toast } from "sonner";
-import { GeneratorForm } from "@/components/generator/GeneratorForm";
-import { GenerationProgress } from "@/components/generator/GenerationProgress";
-import { GeneratedImage } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Wand2 } from "lucide-react";
+import { GenerationProgress } from '@/components/generator/GenerationProgress';
+import { GeneratorForm } from '@/components/generator/GeneratorForm';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GeneratedImage } from '@/types';
+import { Wand2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
+import { mutate } from 'swr';
 
 interface ActiveTask {
   taskId: string;
@@ -33,10 +33,10 @@ export default function HomePage() {
         ),
       );
       toast.success(
-        `Generated ${images.length} image${images.length !== 1 ? "s" : ""}!`,
+        `Generated ${images.length} image${images.length !== 1 ? 's' : ''}!`,
       );
       // Refresh the credits display in the header
-      mutate("/api/credits");
+      mutate('/api/credits');
     },
     [],
   );
@@ -96,7 +96,7 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {activeTasks.length} task{activeTasks.length !== 1 ? "s" : ""}
+                  {activeTasks.length} task{activeTasks.length !== 1 ? 's' : ''}
                 </p>
                 {activeTasks.some((t) => t.done) && (
                   <Button

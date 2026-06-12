@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Download, ZoomIn, Trash2, MoreVertical, Check } from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import Image from "next/image";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { GeneratedImage, TaskWithImages } from "@/types";
-import { getModelById } from "@/lib/models";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/dropdown-menu';
+import { getModelById } from '@/lib/models';
+import { cn } from '@/lib/utils';
+import { GeneratedImage, TaskWithImages } from '@/types';
+import { Check, Download, MoreVertical, Trash2, ZoomIn } from 'lucide-react';
+import Image from 'next/image';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ImageCardProps {
   task: TaskWithImages;
@@ -43,27 +43,27 @@ export function ImageCard({
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await fetch("/api/gallery", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/gallery', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId: task.taskId }),
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Image deleted");
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Image deleted');
       onDelete?.();
     } catch {
-      toast.error("Failed to delete image");
+      toast.error('Failed to delete image');
     } finally {
       setDeleting(false);
     }
   }
 
   function handleDownload() {
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = image.r2Url;
     a.download = `${task.taskId}_${image.id}.webp`;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
     a.click();
   }
 
@@ -76,22 +76,22 @@ export function ImageCard({
   return (
     <>
       <div
-        role={selectionMode ? "button" : undefined}
+        role={selectionMode ? 'button' : undefined}
         tabIndex={selectionMode ? 0 : undefined}
         className={cn(
-          "group relative overflow-hidden rounded-lg bg-muted border transition-all",
+          'group relative overflow-hidden rounded-lg bg-muted border transition-all',
           selectionMode
-            ? "cursor-pointer"
-            : "border-border/50 hover:border-primary/30",
+            ? 'cursor-pointer'
+            : 'border-border/50 hover:border-primary/30',
           isSelected
-            ? "border-primary ring-2 ring-primary/40"
-            : "border-border/50",
+            ? 'border-primary ring-2 ring-primary/40'
+            : 'border-border/50',
         )}
         onClick={handleCardClick}
         onKeyDown={
           selectionMode
             ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   onToggleSelect?.(task.taskId);
                 }
@@ -114,16 +114,16 @@ export function ImageCard({
         {selectionMode && (
           <div
             className={cn(
-              "absolute inset-0 transition-colors",
-              isSelected ? "bg-primary/20" : "bg-transparent",
+              'absolute inset-0 transition-colors',
+              isSelected ? 'bg-primary/20' : 'bg-transparent',
             )}
           >
             <div
               className={cn(
-                "absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                'absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-colors',
                 isSelected
-                  ? "bg-primary border-primary"
-                  : "bg-black/40 border-white/70",
+                  ? 'bg-primary border-primary'
+                  : 'bg-black/40 border-white/70',
               )}
             >
               {isSelected && (
@@ -163,7 +163,7 @@ export function ImageCard({
                     disabled={deleting}
                   >
                     <Trash2 className="size-4 mr-2" />
-                    {deleting ? "Deleting..." : "Delete"}
+                    {deleting ? 'Deleting...' : 'Delete'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

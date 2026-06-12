@@ -1,41 +1,47 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { loginAction } from "./actions";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Lock, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Loader2, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { loginAction } from './actions';
 
 export default function LoginPage() {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError("Password wajib diisi");
+      setError('Password wajib diisi');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       const res = await loginAction(password);
       if (res.success) {
-        toast.success("Login berhasil!");
-        router.push("/");
+        toast.success('Login berhasil!');
+        router.push('/');
         router.refresh();
       } else {
-        setError(res.error || "Password salah!");
+        setError(res.error || 'Password salah!');
       }
     } catch (err) {
-      setError("Terjadi kesalahan sistem.");
+      setError('Terjadi kesalahan sistem.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -79,7 +85,11 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
-              <Button type="submit" className="w-full relative overflow-hidden group" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full relative overflow-hidden group"
+                disabled={loading}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

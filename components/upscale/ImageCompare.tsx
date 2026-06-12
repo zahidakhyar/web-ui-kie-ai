@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import Image from "next/image";
-import { ChevronsLeftRight } from "lucide-react";
+import { ChevronsLeftRight } from 'lucide-react';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ImageCompareProps {
   beforeUrl: string;
@@ -10,7 +10,11 @@ interface ImageCompareProps {
   className?: string;
 }
 
-export function ImageCompare({ beforeUrl, afterUrl, className }: ImageCompareProps) {
+export function ImageCompare({
+  beforeUrl,
+  afterUrl,
+  className,
+}: ImageCompareProps) {
   const [position, setPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,36 +27,42 @@ export function ImageCompare({ beforeUrl, afterUrl, className }: ImageComparePro
     setPosition(percentage);
   }, []);
 
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    handleMove(e.clientX);
-  }, [isDragging, handleMove]);
+  const onMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging) return;
+      handleMove(e.clientX);
+    },
+    [isDragging, handleMove],
+  );
 
   const onMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  const onTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging) return;
-    const touch = e.touches[0];
-    if (touch) {
-      handleMove(touch.clientX);
-    }
-  }, [isDragging, handleMove]);
+  const onTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      if (touch) {
+        handleMove(touch.clientX);
+      }
+    },
+    [isDragging, handleMove],
+  );
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
-      window.addEventListener("touchmove", onTouchMove, { passive: true });
-      window.addEventListener("touchend", onMouseUp);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('touchmove', onTouchMove, { passive: true });
+      window.addEventListener('touchend', onMouseUp);
     }
 
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onMouseUp);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onMouseUp);
     };
   }, [isDragging, onMouseMove, onMouseUp, onTouchMove]);
 

@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { GeneratedImage, GenerationTask, TaskState } from '@/types';
 import {
-  Loader2,
   CheckCircle2,
-  XCircle,
   Clock,
-  Trash2,
   Download,
+  Loader2,
   Sparkles,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { GeneratedImage, GenerationTask, TaskState } from "@/types";
-import { cn } from "@/lib/utils";
+  Trash2,
+  XCircle,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface GenerationProgressProps {
   taskId: string;
@@ -24,24 +24,24 @@ interface GenerationProgressProps {
 }
 
 interface SSEUpdate {
-  type: "update";
+  type: 'update';
   task: GenerationTask | null;
   images: GeneratedImage[];
 }
 
 interface SSETimeout {
-  type: "timeout";
+  type: 'timeout';
 }
 
 type SSEMessage = SSEUpdate | SSETimeout;
 
 function StatusIcon({ state }: { state: TaskState }) {
   switch (state) {
-    case "success":
+    case 'success':
       return <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />;
-    case "fail":
+    case 'fail':
       return <XCircle className="size-4 text-destructive shrink-0" />;
-    case "waiting":
+    case 'waiting':
       return <Loader2 className="size-4 animate-spin text-primary shrink-0" />;
     default:
       return <Clock className="size-4 text-muted-foreground shrink-0" />;
@@ -50,14 +50,14 @@ function StatusIcon({ state }: { state: TaskState }) {
 
 function statusLabel(state: TaskState) {
   switch (state) {
-    case "success":
-      return "Complete";
-    case "fail":
-      return "Failed";
-    case "waiting":
-      return "Generating…";
+    case 'success':
+      return 'Complete';
+    case 'fail':
+      return 'Failed';
+    case 'waiting':
+      return 'Generating…';
     default:
-      return "Queued";
+      return 'Queued';
   }
 }
 
@@ -76,14 +76,14 @@ function DeterminateBar({
   variant,
 }: {
   value: number;
-  variant?: "success" | "fail";
+  variant?: 'success' | 'fail';
 }) {
   return (
     <div className="relative h-1.5 w-full rounded-full bg-muted overflow-hidden">
       <div
         className={cn(
-          "h-full rounded-full transition-all duration-500",
-          variant === "fail" ? "bg-destructive" : "bg-emerald-500",
+          'h-full rounded-full transition-all duration-500',
+          variant === 'fail' ? 'bg-destructive' : 'bg-emerald-500',
         )}
         style={{ width: `${value}%` }}
       />
@@ -106,25 +106,25 @@ export function GenerationProgress({
 
     es.onmessage = (event) => {
       const msg = JSON.parse(event.data as string) as SSEMessage;
-      if (msg.type === "update") {
+      if (msg.type === 'update') {
         setTask(msg.task);
         setTaskImages(msg.images);
 
         if (completedRef.current) return;
 
-        if (msg.task?.status === "success") {
+        if (msg.task?.status === 'success') {
           completedRef.current = true;
           onComplete?.(msg.images);
           es.close();
-        } else if (msg.task?.status === "fail") {
+        } else if (msg.task?.status === 'fail') {
           completedRef.current = true;
-          onError?.(msg.task.errorMsg ?? "Generation failed.");
+          onError?.(msg.task.errorMsg ?? 'Generation failed.');
           es.close();
         }
-      } else if (msg.type === "timeout") {
+      } else if (msg.type === 'timeout') {
         es.close();
         if (!completedRef.current) {
-          onError?.("Request timed out. Please try again.");
+          onError?.('Request timed out. Please try again.');
         }
       }
     };
@@ -138,16 +138,16 @@ export function GenerationProgress({
     };
   }, [taskId, onComplete, onError]);
 
-  const state: TaskState = (task?.status as TaskState) ?? "pending";
-  const isInProgress = state === "pending" || state === "waiting";
-  const isDone = state === "success" || state === "fail";
+  const state: TaskState = (task?.status as TaskState) ?? 'pending';
+  const isInProgress = state === 'pending' || state === 'waiting';
+  const isDone = state === 'success' || state === 'fail';
 
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-all",
-        state === "fail" && "border-destructive/40",
-        state === "success" && "border-emerald-500/30",
+        'overflow-hidden transition-all',
+        state === 'fail' && 'border-destructive/40',
+        state === 'success' && 'border-emerald-500/30',
       )}
     >
       <CardContent className="p-0">
@@ -169,7 +169,7 @@ export function GenerationProgress({
 
           <div className="flex items-center gap-2 shrink-0">
             <Badge
-              variant={state === "fail" ? "destructive" : "secondary"}
+              variant={state === 'fail' ? 'destructive' : 'secondary'}
               className="text-xs font-mono"
             >
               {taskId.slice(0, 8)}
@@ -191,40 +191,40 @@ export function GenerationProgress({
         {/* Progress bar */}
         <div className="px-4 pb-3">
           {isInProgress ? (
-            <IndeterminateBar active={state === "waiting"} />
+            <IndeterminateBar active={state === 'waiting'} />
           ) : (
             <DeterminateBar
               value={100}
-              variant={state === "fail" ? "fail" : "success"}
+              variant={state === 'fail' ? 'fail' : 'success'}
             />
           )}
         </div>
 
         {/* Body */}
-        {state === "fail" && task?.errorMsg && (
+        {state === 'fail' && task?.errorMsg && (
           <div className="mx-4 mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
             <p className="text-xs text-destructive">{task.errorMsg}</p>
           </div>
         )}
 
-        {state === "waiting" && (
+        {state === 'waiting' && (
           <div className="mx-4 mb-4 flex items-center gap-2 text-xs text-muted-foreground">
             <Sparkles className="size-3.5 shrink-0" />
             <span>This may take 15–60 seconds…</span>
           </div>
         )}
 
-        {state === "pending" && (
+        {state === 'pending' && (
           <p className="mx-4 mb-4 text-xs text-muted-foreground">
             Waiting in queue…
           </p>
         )}
 
-        {state === "success" && taskImages.length > 0 && (
+        {state === 'success' && taskImages.length > 0 && (
           <div
             className={cn(
-              "grid gap-2 px-4 pb-4",
-              taskImages.length === 1 ? "grid-cols-1" : "grid-cols-2",
+              'grid gap-2 px-4 pb-4',
+              taskImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2',
             )}
           >
             {taskImages.map((img) => (

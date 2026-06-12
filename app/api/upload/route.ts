@@ -1,26 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { uploadBuffer } from "@/lib/r2";
-import { db } from "@/lib/db";
-import { uploads } from "@/lib/schema";
-import { randomUUID } from "node:crypto";
+import { db } from '@/lib/db';
+import { uploadBuffer } from '@/lib/r2';
+import { uploads } from '@/lib/schema';
+import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/avif",
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
 ]);
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const files = formData.getAll("files") as File[];
+    const files = formData.getAll('files') as File[];
 
     if (!files.length) {
-      return NextResponse.json({ error: "No files provided" }, { status: 400 });
+      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
     if (files.length > MAX_FILES) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       }
 
       const buffer = Buffer.from(await file.arrayBuffer());
-      const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+      const ext = file.type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
       const date = new Date().toISOString().slice(0, 10);
       const key = `uploads/${date}/${randomUUID()}.${ext}`;
 
@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ urls: results });
   } catch (err) {
-    console.error("[POST /api/upload]", err);
+    console.error('[POST /api/upload]', err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Upload failed" },
+      { error: err instanceof Error ? err.message : 'Upload failed' },
       { status: 500 },
     );
   }

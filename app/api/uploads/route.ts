@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { uploads } from "@/lib/schema";
-import { desc, inArray } from "drizzle-orm";
-import { deleteImage } from "@/lib/r2";
+import { db } from '@/lib/db';
+import { deleteImage } from '@/lib/r2';
+import { uploads } from '@/lib/schema';
+import { desc, inArray } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const limit = Math.min(
       100,
-      Number.parseInt(searchParams.get("limit") ?? "50", 10),
+      Number.parseInt(searchParams.get('limit') ?? '50', 10),
     );
     const offset = Math.max(
       0,
-      Number.parseInt(searchParams.get("offset") ?? "0", 10),
+      Number.parseInt(searchParams.get('offset') ?? '0', 10),
     );
 
     const rows = await db
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ uploads: rows });
   } catch (err) {
-    console.error("[GET /api/uploads]", err);
+    console.error('[GET /api/uploads]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }
@@ -49,7 +49,7 @@ export async function DELETE(request: NextRequest) {
 
     if (ids.length === 0) {
       return NextResponse.json(
-        { error: "uploadId or uploadIds is required" },
+        { error: 'uploadId or uploadIds is required' },
         { status: 400 },
       );
     }
@@ -66,7 +66,7 @@ export async function DELETE(request: NextRequest) {
           await deleteImage(key);
         } catch (err) {
           console.error(
-            "[DELETE /api/uploads] R2 delete failed",
+            '[DELETE /api/uploads] R2 delete failed',
             row.r2Url,
             err,
           );
@@ -78,9 +78,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[DELETE /api/uploads]", err);
+    console.error('[DELETE /api/uploads]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

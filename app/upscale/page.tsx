@@ -1,18 +1,24 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef } from "react";
-import { mutate } from "swr";
-import { toast } from "sonner";
-import { Sparkles, Maximize2, Upload, Loader2, X } from "lucide-react";
-import { GalleryPicker } from "@/components/upscale/GalleryPicker";
-import { UpscaleProgress } from "@/components/upscale/UpscaleProgress";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { GeneratedImage } from "@/types";
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { GalleryPicker } from '@/components/upscale/GalleryPicker';
+import { UpscaleProgress } from '@/components/upscale/UpscaleProgress';
+import { cn } from '@/lib/utils';
+import { GeneratedImage } from '@/types';
+import { Loader2, Maximize2, Sparkles, Upload, X } from 'lucide-react';
+import Image from 'next/image';
+import { useCallback, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { mutate } from 'swr';
 
 interface ActiveTask {
   taskId: string;
@@ -22,7 +28,7 @@ interface ActiveTask {
 
 export default function UpscalePage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [nsfwChecker, setNsfwChecker] = useState(true);
+  const [nsfwChecker, setNsfwChecker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTasks, setActiveTasks] = useState<ActiveTask[]>([]);
@@ -34,17 +40,22 @@ export default function UpscalePage() {
     setSelectedImage(null); // Clear selected image after starting
   }, []);
 
-  const handleComplete = useCallback((taskId: string, images: GeneratedImage[]) => {
-    setActiveTasks((prev) =>
-      prev.map((t) => (t.taskId === taskId ? { ...t, done: true, images } : t))
-    );
-    toast.success("Image upscaled successfully!");
-    mutate("/api/credits");
-  }, []);
+  const handleComplete = useCallback(
+    (taskId: string, images: GeneratedImage[]) => {
+      setActiveTasks((prev) =>
+        prev.map((t) =>
+          t.taskId === taskId ? { ...t, done: true, images } : t,
+        ),
+      );
+      toast.success('Image upscaled successfully!');
+      mutate('/api/credits');
+    },
+    [],
+  );
 
   const handleError = useCallback((taskId: string, msg: string) => {
     setActiveTasks((prev) =>
-      prev.map((t) => (t.taskId === taskId ? { ...t, done: true } : t))
+      prev.map((t) => (t.taskId === taskId ? { ...t, done: true } : t)),
     );
     toast.error(msg);
   }, []);
@@ -59,27 +70,29 @@ export default function UpscalePage() {
     setIsUploading(true);
 
     const formData = new FormData();
-    formData.append("files", file);
+    formData.append('files', file);
 
     try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
+      const res = await fetch('/api/upload', {
+        method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to upload image.");
+        throw new Error(data.error ?? 'Failed to upload image.');
       }
 
       const uploadedUrl = data.urls?.[0];
       if (uploadedUrl) {
         setSelectedImage(uploadedUrl);
-        toast.success("Image uploaded successfully.");
+        toast.success('Image uploaded successfully.');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload image.");
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to upload image.',
+      );
     } finally {
       setIsUploading(false);
     }
@@ -103,18 +116,18 @@ export default function UpscalePage() {
   async function handleUpscaleSubmit(e: React.MouseEvent) {
     e.preventDefault();
     if (!selectedImage) {
-      toast.error("Please select or upload an image first.");
+      toast.error('Please select or upload an image first.');
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelId: "recraft/crisp-upscale",
+          modelId: 'recraft/crisp-upscale',
           params: {
             image: selectedImage,
             nsfw_checker: nsfwChecker,
@@ -125,13 +138,15 @@ export default function UpscalePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to start upscale.");
+        throw new Error(data.error ?? 'Failed to start upscale.');
       }
 
       handleTaskCreated(data.taskId);
-      toast.success("Upscale task started!");
+      toast.success('Upscale task started!');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to start upscale.");
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to start upscale.',
+      );
       setIsGenerating(false);
     }
   }
@@ -156,7 +171,9 @@ export default function UpscalePage() {
         <div className="lg:sticky lg:top-[4.5rem] space-y-6">
           <Card className="border border-border/50 bg-card/30 backdrop-blur-sm shadow-sm">
             <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-semibold tracking-tight">Control Panel</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-tight">
+                Control Panel
+              </CardTitle>
               <CardDescription className="text-xs">
                 Upload or select an image to enhance.
               </CardDescription>
@@ -197,8 +214,8 @@ export default function UpscalePage() {
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      "border-2 border-dashed border-border/60 hover:border-primary/50 transition-all rounded-xl aspect-square flex flex-col items-center justify-center text-center p-6 cursor-pointer bg-muted/10 hover:bg-muted/30 group",
-                      isUploading && "pointer-events-none opacity-60"
+                      'border-2 border-dashed border-border/60 hover:border-primary/50 transition-all rounded-xl aspect-square flex flex-col items-center justify-center text-center p-6 cursor-pointer bg-muted/10 hover:bg-muted/30 group',
+                      isUploading && 'pointer-events-none opacity-60',
                     )}
                   >
                     <input
@@ -212,7 +229,9 @@ export default function UpscalePage() {
                     {isUploading ? (
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="size-6 animate-spin text-primary" />
-                        <p className="text-xs text-muted-foreground font-medium">Uploading image...</p>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Uploading image...
+                        </p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-2.5">
@@ -248,7 +267,10 @@ export default function UpscalePage() {
 
                 <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 p-3">
                   <div className="space-y-0.5">
-                    <Label htmlFor="nsfw-filter" className="text-xs font-medium cursor-pointer">
+                    <Label
+                      htmlFor="nsfw-filter"
+                      className="text-xs font-medium cursor-pointer"
+                    >
                       NSFW Filter
                     </Label>
                     <p className="text-[10px] text-muted-foreground/80">
@@ -294,9 +316,12 @@ export default function UpscalePage() {
                 <Sparkles className="size-5 text-muted-foreground/50" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-muted-foreground">No active upscale tasks</p>
+                <p className="text-sm font-semibold text-muted-foreground">
+                  No active upscale tasks
+                </p>
                 <p className="text-xs text-muted-foreground/60 max-w-xs leading-relaxed">
-                  Select an image, configure filters, and click "Upscale Image" to enhance details.
+                  Select an image, configure filters, and click &quot;Upscale
+                  Image&quot; to enhance details.
                 </p>
               </div>
             </div>
@@ -311,7 +336,9 @@ export default function UpscalePage() {
                     variant="ghost"
                     size="sm"
                     className="text-[10px] h-7 text-muted-foreground hover:text-foreground"
-                    onClick={() => setActiveTasks((prev) => prev.filter((t) => !t.done))}
+                    onClick={() =>
+                      setActiveTasks((prev) => prev.filter((t) => !t.done))
+                    }
                   >
                     Clear completed
                   </Button>

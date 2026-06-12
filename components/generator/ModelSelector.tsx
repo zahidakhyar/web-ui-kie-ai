@@ -1,16 +1,15 @@
-"use client";
+'use client';
 
-import { ModelConfig } from "@/types";
-import { MODELS } from "@/lib/models";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+} from '@/components/ui/select';
+import { MODELS } from '@/lib/models';
 
 interface ModelSelectorProps {
   value: string;

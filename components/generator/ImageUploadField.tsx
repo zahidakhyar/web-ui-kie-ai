@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { useCallback, useRef, useState } from "react";
-import {
-  Upload,
-  X,
-  Loader2,
-  ImagePlus,
-  AlertCircle,
-  FolderOpen,
-  Check,
-} from "lucide-react";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import {
+  AlertCircle,
+  Check,
+  FolderOpen,
+  ImagePlus,
+  Loader2,
+  Upload,
+  X,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useCallback, useRef, useState } from 'react';
 
 interface UploadedImage {
   /** Local object URL for preview */
@@ -27,7 +27,7 @@ interface UploadedImage {
   /** R2 public URL after upload */
   url: string | null;
   /** Upload state */
-  status: "uploading" | "done" | "error";
+  status: 'uploading' | 'done' | 'error';
   errorMsg?: string;
   fileName: string;
 }
@@ -56,11 +56,11 @@ interface ImageUploadFieldProps {
 }
 
 const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/avif",
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -75,9 +75,9 @@ function getLibraryItemBorderClass(
   isAdded: boolean,
   isSelected: boolean,
 ): string {
-  if (isAdded) return "opacity-40 cursor-not-allowed border-border";
-  if (isSelected) return "border-primary ring-2 ring-primary/30";
-  return "border-transparent hover:border-primary/50";
+  if (isAdded) return 'opacity-40 cursor-not-allowed border-border';
+  if (isSelected) return 'border-primary ring-2 ring-primary/30';
+  return 'border-transparent hover:border-primary/50';
 }
 
 function LibraryContent({
@@ -122,7 +122,7 @@ function LibraryContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(record.r2Url)}
             className={cn(
-              "relative aspect-square rounded-md overflow-hidden border-2 transition-colors",
+              'relative aspect-square rounded-md overflow-hidden border-2 transition-colors',
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -196,7 +196,7 @@ function GalleryPickerContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(img.r2Url)}
             className={cn(
-              "relative aspect-square rounded-md overflow-hidden border-2 transition-colors",
+              'relative aspect-square rounded-md overflow-hidden border-2 transition-colors',
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -241,8 +241,8 @@ export function ImageUploadField({
 
   // Library picker state
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [activePickerTab, setActivePickerTab] = useState<"uploads" | "gallery">(
-    "uploads",
+  const [activePickerTab, setActivePickerTab] = useState<'uploads' | 'gallery'>(
+    'uploads',
   );
   const [library, setLibrary] = useState<UploadRecord[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -253,7 +253,7 @@ export function ImageUploadField({
   const uploadFiles = useCallback(
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files);
-      const currentCount = items.filter((i) => i.status === "done").length;
+      const currentCount = items.filter((i) => i.status === 'done').length;
       const remaining = maxFiles - currentCount;
 
       const toUpload = fileArray.slice(0, remaining).filter((f) => {
@@ -267,18 +267,18 @@ export function ImageUploadField({
       const placeholders: UploadedImage[] = toUpload.map((f) => ({
         preview: URL.createObjectURL(f),
         url: null,
-        status: "uploading",
+        status: 'uploading',
         fileName: f.name,
       }));
 
       setItems((prev) => [...prev, ...placeholders]);
 
       const formData = new FormData();
-      toUpload.forEach((f) => formData.append("files", f));
+      toUpload.forEach((f) => formData.append('files', f));
 
       try {
-        const res = await fetch("/api/upload", {
-          method: "POST",
+        const res = await fetch('/api/upload', {
+          method: 'POST',
           body: formData,
         });
 
@@ -291,8 +291,8 @@ export function ImageUploadField({
               matchesPlaceholder(placeholders, item)
                 ? {
                     ...item,
-                    status: "error",
-                    errorMsg: data.error ?? "Upload failed",
+                    status: 'error',
+                    errorMsg: data.error ?? 'Upload failed',
                   }
                 : item,
             ),
@@ -309,11 +309,11 @@ export function ImageUploadField({
               (u) => u.preview === placeholders[i].preview,
             );
             if (idx !== -1) {
-              updated[idx] = { ...updated[idx], url: urls[i], status: "done" };
+              updated[idx] = { ...updated[idx], url: urls[i], status: 'done' };
             }
           }
           const doneUrls = updated
-            .filter((item) => item.status === "done" && item.url)
+            .filter((item) => item.status === 'done' && item.url)
             .map((item) => item.url as string);
           onChange(doneUrls);
           return updated;
@@ -322,7 +322,7 @@ export function ImageUploadField({
         setItems((prev) =>
           prev.map((item) =>
             matchesPlaceholder(placeholders, item)
-              ? { ...item, status: "error", errorMsg: "Network error" }
+              ? { ...item, status: 'error', errorMsg: 'Network error' }
               : item,
           ),
         );
@@ -336,7 +336,7 @@ export function ImageUploadField({
     setItems((prev) => {
       const updated = prev.filter((i) => i.preview !== preview);
       const doneUrls = updated
-        .filter((i) => i.status === "done" && i.url)
+        .filter((i) => i.status === 'done' && i.url)
         .map((i) => i.url as string);
       onChange(doneUrls);
       return updated;
@@ -353,17 +353,17 @@ export function ImageUploadField({
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       uploadFiles(e.target.files);
-      e.target.value = "";
+      e.target.value = '';
     }
   }
 
   async function openPicker() {
     setPickerOpen(true);
     setSelected(new Set());
-    setActivePickerTab("uploads");
+    setActivePickerTab('uploads');
     setLibraryLoading(true);
     try {
-      const res = await fetch("/api/uploads?limit=100");
+      const res = await fetch('/api/uploads?limit=100');
       const data = (await res.json()) as { uploads: UploadRecord[] };
       setLibrary(data.uploads ?? []);
     } catch {
@@ -377,7 +377,7 @@ export function ImageUploadField({
     if (galleryImages.length > 0) return; // already loaded
     setGalleryLoading(true);
     try {
-      const res = await fetch("/api/gallery?page=1&limit=50");
+      const res = await fetch('/api/gallery?page=1&limit=50');
       const data = (await res.json()) as {
         items?: Array<{
           taskId: string;
@@ -401,8 +401,8 @@ export function ImageUploadField({
   }
 
   function handlePickerTabChange(tab: string) {
-    setActivePickerTab(tab as "uploads" | "gallery");
-    if (tab === "gallery") {
+    setActivePickerTab(tab as 'uploads' | 'gallery');
+    if (tab === 'gallery') {
       loadGallery();
     }
   }
@@ -420,7 +420,7 @@ export function ImageUploadField({
   }
 
   function confirmPicker() {
-    const doneCount = items.filter((i) => i.status === "done").length;
+    const doneCount = items.filter((i) => i.status === 'done').length;
     const remaining = maxFiles - doneCount;
     const toAdd = Array.from(selected).slice(0, remaining);
 
@@ -435,18 +435,18 @@ export function ImageUploadField({
       return {
         preview: url,
         url,
-        status: "done",
+        status: 'done',
         fileName:
           uploadRecord?.fileName ??
           galleryRecord?.prompt.slice(0, 40) ??
-          "image",
+          'image',
       };
     });
 
     setItems((prev) => {
       const updated = [...prev, ...newItems];
       const doneUrls = updated
-        .filter((i) => i.status === "done" && i.url)
+        .filter((i) => i.status === 'done' && i.url)
         .map((i) => i.url as string);
       onChange(doneUrls);
       return updated;
@@ -455,7 +455,7 @@ export function ImageUploadField({
     setPickerOpen(false);
   }
 
-  const doneCount = items.filter((i) => i.status === "done").length;
+  const doneCount = items.filter((i) => i.status === 'done').length;
   const canAddMore = doneCount < maxFiles && !disabled;
   const hasItems = items.length > 0;
   const addedUrls = new Set(
@@ -470,7 +470,7 @@ export function ImageUploadField({
           tabIndex={0}
           aria-label="Upload reference images"
           onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+          onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragging(true);
@@ -478,10 +478,10 @@ export function ImageUploadField({
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 cursor-pointer transition-colors select-none",
+            'relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 cursor-pointer transition-colors select-none',
             isDragging
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary/50 hover:bg-muted/30",
+              ? 'border-primary bg-primary/5'
+              : 'border-border hover:border-primary/50 hover:bg-muted/30',
           )}
         >
           <div className="size-9 rounded-full bg-muted flex items-center justify-center">
@@ -489,10 +489,10 @@ export function ImageUploadField({
           </div>
           <div className="text-center">
             <p className="text-sm font-medium">
-              {hasItems ? "Add more images" : "Upload reference images"}
+              {hasItems ? 'Add more images' : 'Upload reference images'}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Drag & drop or click · JPG, PNG, WebP, GIF, AVIF · max 10 MB ·{" "}
+              Drag & drop or click · JPG, PNG, WebP, GIF, AVIF · max 10 MB ·{' '}
               {maxFiles - doneCount} remaining
             </p>
           </div>
@@ -501,7 +501,7 @@ export function ImageUploadField({
             ref={inputRef}
             type="file"
             multiple
-            accept={ALLOWED_TYPES.join(",")}
+            accept={ALLOWED_TYPES.join(',')}
             className="sr-only"
             onChange={handleInputChange}
             disabled={disabled}
@@ -535,16 +535,16 @@ export function ImageUploadField({
                 src={item.preview}
                 alt={item.fileName}
                 className={cn(
-                  "w-full h-full object-cover transition-opacity",
-                  item.status !== "done" && "opacity-50",
+                  'w-full h-full object-cover transition-opacity',
+                  item.status !== 'done' && 'opacity-50',
                 )}
               />
-              {item.status === "uploading" && (
+              {item.status === 'uploading' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <Loader2 className="size-5 text-white animate-spin" />
                 </div>
               )}
-              {item.status === "error" && (
+              {item.status === 'error' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/50 p-1">
                   <AlertCircle className="size-4 text-white" />
                   <p className="text-white text-[10px] text-center mt-1 leading-tight line-clamp-2">
@@ -552,7 +552,7 @@ export function ImageUploadField({
                   </p>
                 </div>
               )}
-              {(item.status === "done" || item.status === "error") && (
+              {(item.status === 'done' || item.status === 'error') && (
                 <button
                   type="button"
                   onClick={() => removeItem(item.preview)}
@@ -618,7 +618,7 @@ export function ImageUploadField({
             <p className="text-sm text-muted-foreground">
               {selected.size > 0
                 ? `${selected.size} selected`
-                : "Click images to select"}
+                : 'Click images to select'}
             </p>
             <div className="flex gap-2">
               <Button
