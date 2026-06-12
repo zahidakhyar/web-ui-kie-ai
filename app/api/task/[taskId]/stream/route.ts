@@ -20,6 +20,7 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       let closed = false;
+      // eslint-disable-next-line prefer-const
       let timeoutId: ReturnType<typeof setTimeout>;
 
       const send = (data: object) => {
@@ -34,6 +35,7 @@ export async function GET(
       };
 
       // Declared with let so close() can reference it before assignment
+      // eslint-disable-next-line prefer-const
       let onUpdate: (updatedTaskId: string) => Promise<void>;
 
       const close = () => {
