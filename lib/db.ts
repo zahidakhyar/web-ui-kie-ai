@@ -9,7 +9,6 @@ const DB_PATH =
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 
 declare global {
-  // eslint-disable-next-line no-var
   var __db: DbInstance | undefined;
 }
 
