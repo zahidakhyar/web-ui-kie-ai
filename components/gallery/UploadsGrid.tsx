@@ -3,7 +3,7 @@
 import { Reveal } from '@/components/motion/Reveal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, formatBytes, formatRelativeTime } from '@/lib/utils';
 import {
   CheckSquare,
   Check,
@@ -12,12 +12,14 @@ import {
   Loader2,
   Trash2,
   X,
+  ZoomIn,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
+import { ImageDetailModal } from './ImageDetailModal';
 
 interface UploadRecord {
   id: number;
@@ -28,17 +30,25 @@ interface UploadRecord {
   createdAt: number;
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+interface UploadsGridProps {
+  search?: string;
+  sort?: string;
+  gridDensity?: 'compact' | 'comfortable';
 }
 
-export function UploadsGrid() {
-  const { data, isLoading, mutate } = useSWR<{ uploads: UploadRecord[] }>(
-    '/api/uploads?limit=100',
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+export function UploadsGrid({
+  search = '',
+  sort = 'newest',
+  gridDensity = 'compact',
+}: UploadsGridProps = {}) {
+  const params = new URLSearchParams({ limit: '100' });
+  if (search) params.append('search', search);
+  params.append('sort', sort);
+
+  const { data, isLoading, mutate } = useSWR<{ uploads: UploadRecord[]; total: number }>(
+    `/api/uploads?${params.toString()}`,
     fetcher,
   );
 
@@ -46,8 +56,13 @@ export function UploadsGrid() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
   const [batchDeleting, setBatchDeleting] = useState(false);
+  
+  // Modal state pointer
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const uploads = data?.uploads ?? [];
+  const totalCount = data?.total ?? uploads.length;
+  const isEmpty = !isLoading && uploads.length === 0;
 
   const handleToggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -73,7 +88,6 @@ export function UploadsGrid() {
           body: JSON.stringify({ uploadId: id }),
         });
         if (!res.ok) throw new Error('Failed to delete');
-        toast.success('Upload deleted');
         mutate();
       } catch {
         toast.error('Failed to delete upload');
@@ -98,9 +112,7 @@ export function UploadsGrid() {
         body: JSON.stringify({ uploadIds: Array.from(selectedIds) }),
       });
       if (!res.ok) throw new Error('Batch delete failed');
-      toast.success(
-        `Deleted ${selectedIds.size} upload${selectedIds.size !== 1 ? 's' : ''}`,
-      );
+      toast.success(`Deleted ${selectedIds.size} upload(s)`);
       handleExitSelection();
       mutate();
     } catch {
@@ -110,7 +122,8 @@ export function UploadsGrid() {
     }
   }, [selectedIds, handleExitSelection, mutate]);
 
-  function handleDownload(record: UploadRecord) {
+  function handleDownload(record: UploadRecord, e?: React.MouseEvent) {
+    e?.stopPropagation();
     const a = document.createElement('a');
     a.href = record.r2Url;
     a.download = record.fileName;
@@ -119,17 +132,27 @@ export function UploadsGrid() {
     a.click();
   }
 
+  const handleCardClick = (index: number) => {
+    if (selectionMode) {
+      handleToggleSelect(uploads[index].id);
+    } else {
+      setActiveIndex(index);
+    }
+  };
+
+  const hasActiveFilters = search !== '' || sort !== 'newest';
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className={`grid gap-3 ${gridDensity === 'compact' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-xl bg-card-foreground/5" />
+          <Skeleton key={i} className="aspect-square rounded-2xl bg-card-foreground/5" />
         ))}
       </div>
     );
   }
 
-  if (uploads.length === 0) {
+  if (isEmpty) {
     return (
       <Reveal className="flex flex-col items-center justify-center py-24 text-center space-y-4 rounded-2xl border border-dashed border-border/60 bg-card/45 backdrop-blur-sm">
         <div className="relative flex items-center justify-center">
@@ -140,10 +163,12 @@ export function UploadsGrid() {
         </div>
         <div className="space-y-1.5 max-w-sm">
           <h3 className="text-base font-semibold tracking-tight text-foreground">
-            No uploads yet
+            No uploads found
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Upload reference images in the studio to start building your uploads collection.
+            {hasActiveFilters
+              ? 'Try adjusting or clearing your search filters to find what you are looking for.'
+              : 'Upload reference images in the studio to start building your uploads collection.'}
           </p>
         </div>
       </Reveal>
@@ -155,13 +180,13 @@ export function UploadsGrid() {
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border/40 pb-3">
         <p className="text-xs font-mono text-muted-foreground tracking-wider">
-          {uploads.length} {uploads.length === 1 ? 'UPLOAD' : 'UPLOADS'}
+          {totalCount} {totalCount === 1 ? 'UPLOAD' : 'UPLOADS'} MATCHED
         </p>
         {!selectionMode ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200"
+            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200 cursor-pointer"
             onClick={() => setSelectionMode(true)}
           >
             <CheckSquare className="size-3.5" />
@@ -175,7 +200,7 @@ export function UploadsGrid() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors"
+              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors cursor-pointer"
               onClick={handleExitSelection}
             >
               <X className="size-3.5" />
@@ -185,35 +210,30 @@ export function UploadsGrid() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className={`grid gap-3 ${gridDensity === 'compact' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
         {uploads.map((record, index) => {
           const isSelected = selectedIds.has(record.id);
-          const isDeletingSingle = deleting.has(record.id);
           return (
-            <Reveal key={record.id} delay={index * 0.03}>
+            <Reveal key={record.id} delay={index * 0.02}>
               <div
-                role={selectionMode ? 'button' : undefined}
-                tabIndex={selectionMode ? 0 : undefined}
+                role="button"
+                tabIndex={0}
                 className={cn(
-                  'group relative overflow-hidden rounded-2xl bg-muted border transition-all duration-300 hover:-translate-y-0.5 shadow-sm',
+                  'group relative overflow-hidden rounded-2xl bg-muted border transition-all duration-300 hover:-translate-y-0.5 shadow-sm focus:outline-none cursor-pointer',
                   selectionMode
-                    ? 'cursor-pointer'
+                    ? 'ring-offset-background'
                     : 'border-border/50 hover:border-primary/40 hover:shadow-primary/5',
                   isSelected
                     ? 'border-primary ring-2 ring-primary/35'
                     : 'border-border/50',
                 )}
-                onClick={() => selectionMode && handleToggleSelect(record.id)}
-                onKeyDown={
-                  selectionMode
-                    ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleToggleSelect(record.id);
-                        }
-                      }
-                    : undefined
-                }
+                onClick={() => handleCardClick(index)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardClick(index);
+                  }
+                }}
               >
                 {/* Image */}
                 <div className="aspect-square overflow-hidden relative">
@@ -226,7 +246,7 @@ export function UploadsGrid() {
                   />
                 </div>
 
-                {/* Selection overlay */}
+                {/* Selection Circle */}
                 {selectionMode && (
                   <div
                     className={cn(
@@ -249,45 +269,42 @@ export function UploadsGrid() {
                   </div>
                 )}
 
-                {/* Hover overlay (only when not in selection mode) */}
+                {/* Hover overlay (hidden in selectionMode) */}
                 {!selectionMode && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3">
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(record.id);
-                        }}
-                        disabled={isDeletingSingle}
-                        className="size-7 flex items-center justify-center rounded-lg text-white hover:bg-destructive/20 hover:text-destructive transition-colors disabled:opacity-50"
-                        aria-label="Delete upload"
-                      >
-                        {isDeletingSingle ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3">
+                    <div className="flex justify-end" />
                     <div className="space-y-2.5">
                       <p className="text-white text-xs line-clamp-2 leading-relaxed font-mono">
                         {record.fileName}
                       </p>
-                      <p className="text-zinc-400 text-[10px] font-mono">
-                        {formatBytes(record.fileSize)}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-full h-7 text-xs rounded-lg bg-white/20 hover:bg-white/30 hover:scale-[1.02] text-white border-0 transition-all duration-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(record);
-                        }}
-                      >
-                        <Download className="size-3.5 mr-1" /> Download
-                      </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          {formatRelativeTime(record.createdAt)}
+                        </span>
+                        <div className="flex gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 w-7 p-0 rounded-lg bg-white/20 hover:bg-white/35 text-white border-0 transition-all cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveIndex(index);
+                            }}
+                            title="View details"
+                          >
+                            <ZoomIn className="size-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 w-7 p-0 rounded-lg bg-white/20 hover:bg-white/35 text-white border-0 transition-all cursor-pointer"
+                            onClick={(e) => handleDownload(record, e)}
+                            title="Download"
+                          >
+                            <Download className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -297,7 +314,19 @@ export function UploadsGrid() {
         })}
       </div>
 
-      {/* Floating batch-delete action bar with motion entry */}
+      {/* Modal Detail for Uploads */}
+      {activeIndex !== null && activeIndex >= 0 && activeIndex < uploads.length && (
+        <ImageDetailModal
+          isOpen={activeIndex !== null}
+          onClose={() => setActiveIndex(null)}
+          upload={uploads[activeIndex]}
+          onPrev={activeIndex > 0 ? () => setActiveIndex(activeIndex - 1) : undefined}
+          onNext={activeIndex < uploads.length - 1 ? () => setActiveIndex(activeIndex + 1) : undefined}
+          onDelete={() => handleDelete(uploads[activeIndex].id)}
+        />
+      )}
+
+      {/* Floating batch-delete bar */}
       <AnimatePresence>
         {selectionMode && selectedIds.size > 0 && (
           <motion.div
@@ -313,7 +342,7 @@ export function UploadsGrid() {
             <Button
               size="sm"
               variant="destructive"
-              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
+              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm cursor-pointer"
               onClick={handleBatchDelete}
               disabled={batchDeleting}
             >
