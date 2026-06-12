@@ -1,16 +1,19 @@
 'use client';
 
+import { Reveal } from '@/components/motion/Reveal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
   CheckSquare,
+  Check,
   Download,
   ImageOff,
   Loader2,
   Trash2,
   X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -120,7 +123,7 @@ export function UploadsGrid() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-lg" />
+          <Skeleton key={i} className="aspect-square rounded-xl bg-card-foreground/5" />
         ))}
       </div>
     );
@@ -128,44 +131,51 @@ export function UploadsGrid() {
 
   if (uploads.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-        <ImageOff className="size-12 text-muted-foreground/40" />
-        <div>
-          <p className="text-muted-foreground font-medium">No uploads yet</p>
-          <p className="text-sm text-muted-foreground/60 mt-1">
-            Upload reference images to see them here.
+      <Reveal className="flex flex-col items-center justify-center py-24 text-center space-y-4 rounded-2xl border border-dashed border-border/60 bg-card/45 backdrop-blur-sm">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl size-12 animate-pulse" />
+          <div className="relative size-12 rounded-full bg-primary/10 flex items-center justify-center border border-primary/25">
+            <ImageOff className="size-5 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-1.5 max-w-sm">
+          <h3 className="text-base font-semibold tracking-tight text-foreground">
+            No uploads yet
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Upload reference images in the studio to start building your uploads collection.
           </p>
         </div>
-      </div>
+      </Reveal>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {uploads.length} upload{uploads.length !== 1 ? 's' : ''}
+      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+        <p className="text-xs font-mono text-muted-foreground tracking-wider">
+          {uploads.length} {uploads.length === 1 ? 'UPLOAD' : 'UPLOADS'}
         </p>
         {!selectionMode ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5"
+            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200"
             onClick={() => setSelectionMode(true)}
           >
             <CheckSquare className="size-3.5" />
             Select
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {selectedIds.size} selected
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-muted-foreground">
+              {selectedIds.size} SELECTED
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5"
+              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors"
               onClick={handleExitSelection}
             >
               <X className="size-3.5" />
@@ -176,132 +186,147 @@ export function UploadsGrid() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {uploads.map((record) => {
+        {uploads.map((record, index) => {
           const isSelected = selectedIds.has(record.id);
           const isDeletingSingle = deleting.has(record.id);
           return (
-            <div
-              key={record.id}
-              role={selectionMode ? 'button' : undefined}
-              tabIndex={selectionMode ? 0 : undefined}
-              className={cn(
-                'group relative overflow-hidden rounded-lg bg-muted border transition-colors',
-                selectionMode
-                  ? 'cursor-pointer'
-                  : 'border-border/50 hover:border-primary/30',
-                isSelected
-                  ? 'border-primary ring-2 ring-primary/40'
-                  : 'border-border/50',
-              )}
-              onClick={() => selectionMode && handleToggleSelect(record.id)}
-              onKeyDown={
-                selectionMode
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleToggleSelect(record.id);
+            <Reveal key={record.id} delay={index * 0.03}>
+              <div
+                role={selectionMode ? 'button' : undefined}
+                tabIndex={selectionMode ? 0 : undefined}
+                className={cn(
+                  'group relative overflow-hidden rounded-2xl bg-muted border transition-all duration-300 hover:-translate-y-0.5 shadow-sm',
+                  selectionMode
+                    ? 'cursor-pointer'
+                    : 'border-border/50 hover:border-primary/40 hover:shadow-primary/5',
+                  isSelected
+                    ? 'border-primary ring-2 ring-primary/35'
+                    : 'border-border/50',
+                )}
+                onClick={() => selectionMode && handleToggleSelect(record.id)}
+                onKeyDown={
+                  selectionMode
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleToggleSelect(record.id);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            >
-              {/* Image */}
-              <div className="aspect-square overflow-hidden relative">
-                <Image
-                  src={record.r2Url}
-                  alt={record.fileName}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
-                  className="object-cover"
-                />
-              </div>
+                    : undefined
+                }
+              >
+                {/* Image */}
+                <div className="aspect-square overflow-hidden relative">
+                  <Image
+                    src={record.r2Url}
+                    alt={record.fileName}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
 
-              {/* Selection overlay */}
-              {selectionMode && (
-                <div
-                  className={cn(
-                    'absolute inset-0 transition-colors',
-                    isSelected ? 'bg-primary/20' : 'bg-transparent',
-                  )}
-                >
+                {/* Selection overlay */}
+                {selectionMode && (
                   <div
                     className={cn(
-                      'absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-colors',
-                      isSelected
-                        ? 'bg-primary border-primary'
-                        : 'bg-black/40 border-white/70',
+                      'absolute inset-0 transition-colors duration-300',
+                      isSelected ? 'bg-primary/15' : 'bg-transparent',
                     )}
                   >
-                    {isSelected && (
-                      <X className="size-3 text-primary-foreground rotate-45" />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Hover overlay (only when not in selection mode) */}
-              {!selectionMode && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(record.id)}
-                      disabled={isDeletingSingle}
-                      className="size-7 flex items-center justify-center rounded-md text-white hover:bg-white/20 transition-colors disabled:opacity-50"
-                      aria-label="Delete upload"
-                    >
-                      {isDeletingSingle ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3.5" />
+                    <div
+                      className={cn(
+                        'absolute top-2 right-2 size-6 rounded-full border-2 flex items-center justify-center transition-all duration-200',
+                        isSelected
+                          ? 'bg-primary border-primary scale-110'
+                          : 'bg-black/40 border-white/70',
                       )}
-                    </button>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-white text-xs line-clamp-2 leading-relaxed">
-                      {record.fileName}
-                    </p>
-                    <p className="text-white/60 text-[10px]">
-                      {formatBytes(record.fileSize)}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
-                      onClick={() => handleDownload(record)}
                     >
-                      <Download className="size-3 mr-1" /> Download
-                    </Button>
+                      {isSelected && (
+                        <Check className="size-3.5 text-primary-foreground" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Hover overlay (only when not in selection mode) */}
+                {!selectionMode && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-3">
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(record.id);
+                        }}
+                        disabled={isDeletingSingle}
+                        className="size-7 flex items-center justify-center rounded-lg text-white hover:bg-destructive/20 hover:text-destructive transition-colors disabled:opacity-50"
+                        aria-label="Delete upload"
+                      >
+                        {isDeletingSingle ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="space-y-2.5">
+                      <p className="text-white text-xs line-clamp-2 leading-relaxed font-mono">
+                        {record.fileName}
+                      </p>
+                      <p className="text-zinc-400 text-[10px] font-mono">
+                        {formatBytes(record.fileSize)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full h-7 text-xs rounded-lg bg-white/20 hover:bg-white/30 hover:scale-[1.02] text-white border-0 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(record);
+                        }}
+                      >
+                        <Download className="size-3.5 mr-1" /> Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Reveal>
           );
         })}
       </div>
 
-      {/* Floating batch-delete action bar */}
-      {selectionMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-background border border-border shadow-lg px-4 py-2">
-          <span className="text-sm font-medium">
-            {selectedIds.size} selected
-          </span>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="rounded-full gap-1.5"
-            onClick={handleBatchDelete}
-            disabled={batchDeleting}
+      {/* Floating batch-delete action bar with motion entry */}
+      <AnimatePresence>
+        {selectionMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 50, x: '-50%', opacity: 0 }}
+            animate={{ y: 0, x: '-50%', opacity: 1 }}
+            exit={{ y: 50, x: '-50%', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 left-1/2 z-50 flex items-center gap-4 rounded-full bg-card/95 border border-primary/20 backdrop-blur-md shadow-xl px-5 py-2.5"
           >
-            {batchDeleting ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="size-3.5" />
-            )}
-            Delete
-          </Button>
-        </div>
-      )}
+            <span className="text-xs font-mono text-muted-foreground tracking-wider">
+              {selectedIds.size} SELECTED
+            </span>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
+              onClick={handleBatchDelete}
+              disabled={batchDeleting}
+            >
+              {batchDeleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              Delete
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
