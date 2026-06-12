@@ -1,9 +1,11 @@
 'use client';
 
+import { Reveal } from '@/components/motion/Reveal';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GeneratedImage, TaskWithImages } from '@/types';
 import { CheckSquare, ImageOff, Loader2, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import useSWRInfinite from 'swr/infinite';
@@ -94,7 +96,7 @@ export function GalleryGrid() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-lg" />
+          <Skeleton key={i} className="aspect-square rounded-xl bg-card-foreground/5" />
         ))}
       </div>
     );
@@ -102,44 +104,51 @@ export function GalleryGrid() {
 
   if (isEmpty) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-        <ImageOff className="size-12 text-muted-foreground/40" />
-        <div>
-          <p className="text-muted-foreground font-medium">No images yet</p>
-          <p className="text-sm text-muted-foreground/60 mt-1">
-            Generate your first image to see it here.
+      <Reveal className="flex flex-col items-center justify-center py-24 text-center space-y-4 rounded-2xl border border-dashed border-border/60 bg-card/45 backdrop-blur-sm">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl size-12 animate-pulse" />
+          <div className="relative size-12 rounded-full bg-primary/10 flex items-center justify-center border border-primary/25">
+            <ImageOff className="size-5 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-1.5 max-w-sm">
+          <h3 className="text-base font-semibold tracking-tight text-foreground">
+            No images yet
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Generate your first image in the studio to start building your gallery.
           </p>
         </div>
-      </div>
+      </Reveal>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {flatImages.length} image{flatImages.length !== 1 ? 's' : ''}
+      <div className="flex items-center justify-between border-b border-border/40 pb-3">
+        <p className="text-xs font-mono text-muted-foreground tracking-wider">
+          {flatImages.length} {flatImages.length === 1 ? 'IMAGE' : 'IMAGES'}
         </p>
         {!selectionMode ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5"
+            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200"
             onClick={() => setSelectionMode(true)}
           >
             <CheckSquare className="size-3.5" />
             Select
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {selectedTaskIds.size} selected
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono text-muted-foreground">
+              {selectedTaskIds.size} SELECTED
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5"
+              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors"
               onClick={handleExitSelection}
             >
               <X className="size-3.5" />
@@ -150,25 +159,27 @@ export function GalleryGrid() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {flatImages.map(({ task, image }) => (
-          <ImageCard
-            key={image.id}
-            task={task}
-            image={image}
-            onDelete={handleDelete}
-            selectionMode={selectionMode}
-            isSelected={selectedTaskIds.has(task.taskId)}
-            onToggleSelect={handleToggleSelect}
-          />
+        {flatImages.map(({ task, image }, index) => (
+          <Reveal key={image.id} delay={index * 0.03}>
+            <ImageCard
+              task={task}
+              image={image}
+              onDelete={handleDelete}
+              selectionMode={selectionMode}
+              isSelected={selectedTaskIds.has(task.taskId)}
+              onToggleSelect={handleToggleSelect}
+            />
+          </Reveal>
         ))}
       </div>
 
       {!isReachingEnd && (
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-4">
           <Button
             variant="outline"
             onClick={() => setSize(size + 1)}
             disabled={isLoadingMore}
+            className="rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors px-6"
           >
             {isLoadingMore ? (
               <>
@@ -181,28 +192,36 @@ export function GalleryGrid() {
         </div>
       )}
 
-      {/* Floating batch-delete action bar */}
-      {selectionMode && selectedTaskIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-background border border-border shadow-lg px-4 py-2">
-          <span className="text-sm font-medium">
-            {selectedTaskIds.size} selected
-          </span>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="rounded-full gap-1.5"
-            onClick={handleBatchDelete}
-            disabled={batchDeleting}
+      {/* Floating batch-delete action bar with motion entry */}
+      <AnimatePresence>
+        {selectionMode && selectedTaskIds.size > 0 && (
+          <motion.div
+            initial={{ y: 50, x: '-50%', opacity: 0 }}
+            animate={{ y: 0, x: '-50%', opacity: 1 }}
+            exit={{ y: 50, x: '-50%', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 left-1/2 z-50 flex items-center gap-4 rounded-full bg-card/95 border border-primary/20 backdrop-blur-md shadow-xl px-5 py-2.5"
           >
-            {batchDeleting ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="size-3.5" />
-            )}
-            Delete
-          </Button>
-        </div>
-      )}
+            <span className="text-xs font-mono text-muted-foreground tracking-wider">
+              {selectedTaskIds.size} SELECTED
+            </span>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
+              onClick={handleBatchDelete}
+              disabled={batchDeleting}
+            >
+              {batchDeleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              Delete
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
