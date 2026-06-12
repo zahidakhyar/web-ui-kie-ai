@@ -41,17 +41,17 @@ export function ParameterField({
 }: ParameterFieldProps) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={param.key} className="text-sm font-medium">
+      <Label htmlFor={param.key} className="text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider flex items-center gap-1">
         {param.label}
         {param.required && (
-          <span className="text-destructive ml-1" aria-hidden>
+          <span className="text-destructive font-bold text-xs" aria-hidden>
             *
           </span>
         )}
       </Label>
 
       {param.description && (
-        <p className="text-xs text-muted-foreground">{param.description}</p>
+        <p className="text-[11px] text-muted-foreground/70 leading-relaxed mb-1">{param.description}</p>
       )}
 
       {param.type === 'textarea' && (
@@ -63,7 +63,7 @@ export function ParameterField({
           rows={4}
           disabled={disabled}
           maxLength={param.key === 'prompt' ? 3000 : undefined}
-          className="resize-none max-h-40 overflow-y-auto"
+          className="resize-none max-h-40 overflow-y-auto rounded-xl border-border/60 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0"
         />
       )}
 
@@ -75,6 +75,7 @@ export function ParameterField({
           onChange={(e) => onChange(param.key, e.target.value)}
           placeholder={`Enter ${param.label.toLowerCase()}...`}
           disabled={disabled}
+          className="rounded-xl border-border/60 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0"
         />
       )}
 
@@ -88,6 +89,7 @@ export function ParameterField({
           max={param.max}
           step={param.step}
           disabled={disabled}
+          className="rounded-xl border-border/60 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0 font-mono"
         />
       )}
 
@@ -97,12 +99,12 @@ export function ParameterField({
           onValueChange={(v) => v !== null && onChange(param.key, v)}
           disabled={disabled}
         >
-          <SelectTrigger id={param.key}>
+          <SelectTrigger id={param.key} className="rounded-xl border-border/60 focus:ring-2 focus:ring-primary/30">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-border/60">
             {param.options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
+              <SelectItem key={opt.value} value={opt.value} className="rounded-lg">
                 {opt.label}
               </SelectItem>
             ))}
@@ -121,23 +123,23 @@ export function ParameterField({
                 disabled={disabled}
                 onClick={() => onChange(param.key, opt.value)}
                 className={cn(
-                  'flex flex-col items-center gap-1.5 p-2 rounded-md border text-xs transition-colors',
+                  'flex flex-col items-center gap-1.5 p-2 rounded-xl border text-xs transition-all duration-200 active:scale-95',
                   isSelected
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50 text-muted-foreground',
+                    ? 'border-primary/35 bg-primary/5 text-primary shadow-sm shadow-primary/5 font-semibold'
+                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30 text-muted-foreground',
                 )}
               >
                 <div
                   className={cn(
-                    'border-2 rounded-sm',
+                    'border rounded-[3px] transition-colors',
                     isSelected
-                      ? 'border-primary'
-                      : 'border-muted-foreground/50',
+                      ? 'border-primary bg-primary/20'
+                      : 'border-muted-foreground/30 bg-muted/10',
                     ASPECT_RATIO_VISUALS[opt.value] ?? 'aspect-square',
                     'w-6',
                   )}
                 />
-                <span className="leading-none text-center">{opt.value}</span>
+                <span className="leading-none text-[10px] text-center font-mono">{opt.value}</span>
               </button>
             );
           })}
@@ -145,18 +147,19 @@ export function ParameterField({
       )}
 
       {param.type === 'boolean' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-1 py-0.5">
           <Switch
             id={param.key}
             checked={value as boolean}
             onCheckedChange={(checked) => onChange(param.key, checked)}
             disabled={disabled}
+            className="data-[state=checked]:bg-primary"
           />
           <Label
             htmlFor={param.key}
-            className="text-sm text-muted-foreground cursor-pointer"
+            className="text-xs text-muted-foreground cursor-pointer select-none font-mono"
           >
-            {value ? 'Enabled' : 'Disabled'}
+            {value ? 'ENABLED' : 'DISABLED'}
           </Label>
         </div>
       )}
