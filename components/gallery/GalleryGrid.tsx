@@ -6,52 +6,107 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { GeneratedImage, TaskWithImages } from '@/types';
 import { CheckSquare, ImageOff, Loader2, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import useSWRInfinite from 'swr/infinite';
 import { ImageCard } from './ImageCard';
+import { ImageDetailModal } from './ImageDetailModal';
 
 interface GalleryPage {
   items: TaskWithImages[];
   page: number;
   limit: number;
+  total: number;
+}
+
+interface GalleryGridProps {
+  search?: string;
+  model?: string;
+  sort?: string;
+  gridDensity?: 'compact' | 'comfortable';
 }
 
 const PAGE_LIMIT = 24;
 
-const getKey = (pageIndex: number, previousPageData: GalleryPage | null) => {
-  if (previousPageData && previousPageData.items.length < PAGE_LIMIT)
-    return null;
-  return `/api/gallery?page=${pageIndex + 1}&limit=${PAGE_LIMIT}`;
-};
+export function GalleryGrid({
+  search = '',
+  model = 'all',
+  sort = 'newest',
+  gridDensity = 'compact',
+}: GalleryGridProps = {}) {
+  const getKey = (pageIndex: number, previousPageData: GalleryPage | null) => {
+    if (previousPageData && previousPageData.items.length < PAGE_LIMIT) return null;
+    
+    const params = new URLSearchParams({
+      page: String(pageIndex + 1),
+      limit: String(PAGE_LIMIT),
+      sort,
+    });
+    if (search) params.append('search', search);
+    if (model && model !== 'all') params.append('model', model);
+    
+    return `/api/gallery?${params.toString()}`;
+  };
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+  const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-export function GalleryGrid() {
   const { data, size, setSize, isLoading, isValidating, mutate } =
     useSWRInfinite<GalleryPage>(getKey, fetcher, {
       revalidateFirstPage: true,
     });
 
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [batchDeleting, setBatchDeleting] = useState(false);
+  
+  // Detail modal index pointer
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const allItems = data ? data.flatMap((p) => p.items) : [];
   const isLoadingMore = isValidating && size > (data?.length ?? 0);
   const isEmpty = !isLoading && allItems.length === 0;
-  const isReachingEnd =
-    data && data[data.length - 1]?.items.length < PAGE_LIMIT;
+  
+  const totalItemsCount = data?.[0]?.total ?? 0;
+  const isReachingEnd = isLoading || (data && data[data.length - 1]?.items.length < PAGE_LIMIT);
 
   // Flatten all images with their parent task
   const flatImages: { task: TaskWithImages; image: GeneratedImage }[] =
     allItems.flatMap((task) => task.images.map((image) => ({ task, image })));
 
+  // Infinite Scroll IntersectionObserver
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isReachingEnd || isLoadingMore) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setSize((s) => s + 1);
+        }
+      },
+      { rootMargin: '250px' }
+    );
+    
+    const el = sentinelRef.current;
+    if (el) observer.observe(el);
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [isReachingEnd, isLoadingMore, setSize]);
+
   const handleDelete = useCallback(() => {
     mutate();
   }, [mutate]);
+
+  const handleSingleDelete = async (taskId: string) => {
+    const res = await fetch('/api/gallery', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId }),
+    });
+    if (!res.ok) throw new Error('Delete failed');
+    mutate();
+  };
 
   const handleToggleSelect = useCallback((taskId: string) => {
     setSelectedTaskIds((prev) => {
@@ -80,9 +135,7 @@ export function GalleryGrid() {
         body: JSON.stringify({ taskIds: Array.from(selectedTaskIds) }),
       });
       if (!res.ok) throw new Error('Batch delete failed');
-      toast.success(
-        `Deleted ${selectedTaskIds.size} image${selectedTaskIds.size !== 1 ? 's' : ''}`,
-      );
+      toast.success(`Deleted ${selectedTaskIds.size} image(s)`);
       handleExitSelection();
       mutate();
     } catch {
@@ -92,11 +145,13 @@ export function GalleryGrid() {
     }
   }, [selectedTaskIds, handleExitSelection, mutate]);
 
+  const hasActiveFilters = search !== '' || (model && model !== 'all') || sort !== 'newest';
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className={`grid gap-3 ${gridDensity === 'compact' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
         {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-xl bg-card-foreground/5" />
+          <Skeleton key={i} className="aspect-square rounded-2xl bg-card-foreground/5" />
         ))}
       </div>
     );
@@ -113,10 +168,12 @@ export function GalleryGrid() {
         </div>
         <div className="space-y-1.5 max-w-sm">
           <h3 className="text-base font-semibold tracking-tight text-foreground">
-            No images yet
+            No images found
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Generate your first image in the studio to start building your gallery.
+            {hasActiveFilters
+              ? 'Try adjusting or clearing your search filters to find what you are looking for.'
+              : 'Generate your first image in the studio to start building your gallery.'}
           </p>
         </div>
       </Reveal>
@@ -128,13 +185,13 @@ export function GalleryGrid() {
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border/40 pb-3">
         <p className="text-xs font-mono text-muted-foreground tracking-wider">
-          {flatImages.length} {flatImages.length === 1 ? 'IMAGE' : 'IMAGES'}
+          {totalItemsCount} {totalItemsCount === 1 ? 'IMAGE' : 'IMAGES'} MATCHED
         </p>
         {!selectionMode ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200"
+            className="h-8 text-xs gap-1.5 rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer"
             onClick={() => setSelectionMode(true)}
           >
             <CheckSquare className="size-3.5" />
@@ -148,7 +205,7 @@ export function GalleryGrid() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors"
+              className="h-8 text-xs gap-1.5 rounded-xl text-primary hover:bg-primary/5 transition-colors cursor-pointer"
               onClick={handleExitSelection}
             >
               <X className="size-3.5" />
@@ -158,13 +215,13 @@ export function GalleryGrid() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className={`grid gap-3 ${gridDensity === 'compact' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
         {flatImages.map(({ task, image }, index) => (
-          <Reveal key={image.id} delay={index * 0.03}>
+          <Reveal key={image.id} delay={index * 0.02}>
             <ImageCard
               task={task}
               image={image}
-              onDelete={handleDelete}
+              onViewDetail={() => setActiveIndex(index)}
               selectionMode={selectionMode}
               isSelected={selectedTaskIds.has(task.taskId)}
               onToggleSelect={handleToggleSelect}
@@ -173,26 +230,25 @@ export function GalleryGrid() {
         ))}
       </div>
 
-      {!isReachingEnd && (
-        <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            onClick={() => setSize(size + 1)}
-            disabled={isLoadingMore}
-            className="rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors px-6"
-          >
-            {isLoadingMore ? (
-              <>
-                <Loader2 className="size-4 mr-2 animate-spin" /> Loading...
-              </>
-            ) : (
-              'Load more'
-            )}
-          </Button>
-        </div>
+      {/* Infinite Scroll Sentinel */}
+      <div ref={sentinelRef} className="h-10 w-full flex items-center justify-center">
+        {isLoadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
+      </div>
+
+      {/* Detail Lightbox Modal */}
+      {activeIndex !== null && activeIndex >= 0 && activeIndex < flatImages.length && (
+        <ImageDetailModal
+          isOpen={activeIndex !== null}
+          onClose={() => setActiveIndex(null)}
+          task={flatImages[activeIndex].task}
+          image={flatImages[activeIndex].image}
+          onPrev={activeIndex > 0 ? () => setActiveIndex(activeIndex - 1) : undefined}
+          onNext={activeIndex < flatImages.length - 1 ? () => setActiveIndex(activeIndex + 1) : undefined}
+          onDelete={() => handleSingleDelete(flatImages[activeIndex].task.taskId)}
+        />
       )}
 
-      {/* Floating batch-delete action bar with motion entry */}
+      {/* Floating batch-delete bar */}
       <AnimatePresence>
         {selectionMode && selectedTaskIds.size > 0 && (
           <motion.div
@@ -208,7 +264,7 @@ export function GalleryGrid() {
             <Button
               size="sm"
               variant="destructive"
-              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm"
+              className="rounded-full gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm cursor-pointer"
               onClick={handleBatchDelete}
               disabled={batchDeleting}
             >
