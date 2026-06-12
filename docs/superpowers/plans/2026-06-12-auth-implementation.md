@@ -4,7 +4,7 @@
 
 **Goal:** Membatasi akses ke seluruh website (halaman visual dan API endpoints) agar hanya pemilik website yang dapat mengaksesnya, dengan menggunakan password tunggal yang dikonfigurasi melalui environment variable.
 
-**Architecture:** Menggunakan `middleware.ts` Next.js di root project untuk memvalidasi cookie session `auth_session` yang ditandatangani menggunakan SHA-256 HMAC/hashing. Jika session valid, request diizinkan. Jika tidak valid, request di-redirect ke halaman login `/login`. Endpoint callback `/api/callback` dikecualikan secara otomatis dari proteksi middleware untuk mendukung webhook eksternal KIE.ai.
+**Architecture:** Menggunakan `proxy.ts` Next.js di root project untuk memvalidasi cookie session `auth_session` yang ditandatangani menggunakan SHA-256 HMAC/hashing. Jika session valid, request diizinkan. Jika tidak valid, request di-redirect ke halaman login `/login`. Endpoint callback `/api/callback` dikecualikan secara otomatis dari proteksi proxy untuk mendukung webhook eksternal KIE.ai.
 
 **Tech Stack:** Next.js 16 (App Router), React 19, Web Crypto API, Tailwind CSS, Lucide-React.
 
@@ -27,7 +27,7 @@
   ```env
   # Authentication
   ADMIN_PASSWORD=mysecretpassword123
-  AUTH_SECRET=superrandomsecretkeyformiddlewareval
+  AUTH_SECRET=superrandomsecretkeyforproxyval
   ```
 - [ ] **Step 3: Commit perubahan env**
   Run: `git add .env.example`
@@ -35,12 +35,12 @@
 
 ---
 
-### Task 2: Implement Middleware
+### Task 2: Implement Proxy
 **Files:**
-- Create: `middleware.ts`
+- Create: `proxy.ts`
 
-- [ ] **Step 1: Buat file `middleware.ts` di root directory**
-  Create: `/middleware.ts` dengan konten berikut:
+- [ ] **Step 1: Buat file `proxy.ts` di root directory**
+  Create: `/proxy.ts` dengan konten berikut:
   ```typescript
   import { NextResponse } from "next/server";
   import type { NextRequest } from "next/server";
@@ -52,7 +52,7 @@
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  export async function middleware(request: NextRequest) {
+  export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // 1. Webhook callbacks: POST to /api/callback
@@ -121,9 +121,9 @@
     ],
   };
   ```
-- [ ] **Step 2: Commit file `middleware.ts`**
-  Run: `git add middleware.ts`
-  Run: `git commit -m "feat: implement route protection middleware using signed session cookies"`
+- [ ] **Step 2: Commit file `proxy.ts`**
+  Run: `git add proxy.ts`
+  Run: `git commit -m "feat: implement route protection proxy using signed session cookies"`
 
 ---
 
