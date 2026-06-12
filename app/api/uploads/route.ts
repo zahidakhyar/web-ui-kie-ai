@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { deleteImage } from '@/lib/r2';
 import { uploads } from '@/lib/schema';
-import { desc, inArray } from 'drizzle-orm';
+import { and, desc, asc, inArray, like, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -16,14 +16,33 @@ export async function GET(request: NextRequest) {
       Number.parseInt(searchParams.get('offset') ?? '0', 10),
     );
 
+    const search = searchParams.get('search');
+    const sort = searchParams.get('sort') ?? 'newest';
+
+    const conditions = [];
+    if (search) {
+      conditions.push(like(uploads.fileName, `%${search}%`));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const orderBy = sort === 'oldest' ? asc(uploads.createdAt) : desc(uploads.createdAt);
+
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(uploads)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
     const rows = await db
       .select()
       .from(uploads)
-      .orderBy(desc(uploads.createdAt))
+      .where(whereClause)
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
 
-    return NextResponse.json({ uploads: rows });
+    return NextResponse.json({ uploads: rows, total });
   } catch (err) {
     console.error('[GET /api/uploads]', err);
     return NextResponse.json(
