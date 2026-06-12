@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { tasks, images } from "@/lib/schema";
-import { eq, desc, inArray } from "drizzle-orm";
-import { deleteImage } from "@/lib/r2";
+import { db } from '@/lib/db';
+import { deleteImage } from '@/lib/r2';
+import { images, tasks } from '@/lib/schema';
+import { desc, eq, inArray } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
-    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-    const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "24", 10));
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+    const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '24', 10));
     const offset = (page - 1) * limit;
 
     const completedTasks = await db.query.tasks.findMany({
-      where: eq(tasks.status, "success"),
+      where: eq(tasks.status, 'success'),
       orderBy: [desc(tasks.completedAt)],
       limit,
       offset,
@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, page, limit });
   } catch (err) {
-    console.error("[GET /api/gallery]", err);
+    console.error('[GET /api/gallery]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest) {
 
     if (ids.length === 0) {
       return NextResponse.json(
-        { error: "taskId or taskIds is required" },
+        { error: 'taskId or taskIds is required' },
         { status: 400 },
       );
     }
@@ -88,7 +88,7 @@ export async function DELETE(request: NextRequest) {
           await deleteImage(key);
         } catch (err) {
           console.error(
-            "[DELETE /api/gallery] R2 delete failed",
+            '[DELETE /api/gallery] R2 delete failed',
             img.r2Url,
             err,
           );
@@ -102,9 +102,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[DELETE /api/gallery]", err);
+    console.error('[DELETE /api/gallery]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

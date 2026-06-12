@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { tasks, images } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import { uploadImageFromUrl, buildR2Key } from "@/lib/r2";
-import { KieTaskRecord } from "@/types";
-import { taskEvents } from "@/lib/task-events";
+import { db } from '@/lib/db';
+import { buildR2Key, uploadImageFromUrl } from '@/lib/r2';
+import { images, tasks } from '@/lib/schema';
+import { taskEvents } from '@/lib/task-events';
+import { KieTaskRecord } from '@/types';
+import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     if (!record?.taskId) {
       return NextResponse.json(
-        { error: "Invalid callback payload" },
+        { error: 'Invalid callback payload' },
         { status: 400 },
       );
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (record.state === "success" && record.resultJson) {
+    if (record.state === 'success' && record.resultJson) {
       let resultUrls: string[] = [];
       try {
         const parsed = JSON.parse(record.resultJson) as {
@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
         };
         resultUrls = parsed.resultUrls ?? [];
       } catch {
-        console.error("Failed to parse resultJson:", record.resultJson);
+        console.error('Failed to parse resultJson:', record.resultJson);
       }
 
       // Upload each image to R2
       const uploadedImages = await Promise.allSettled(
         resultUrls.map(async (url, i) => {
-          const ext = url.split(".").pop()?.split("?")[0] ?? "webp";
+          const ext = url.split('.').pop()?.split('?')[0] ?? 'webp';
           const key = buildR2Key(record.taskId, i, ext);
           const r2Url = await uploadImageFromUrl(url, key);
           return { url, r2Url };
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       // Insert images that succeeded
       for (let i = 0; i < uploadedImages.length; i++) {
         const result = uploadedImages[i];
-        if (result.status === "fulfilled") {
+        if (result.status === 'fulfilled') {
           await db.insert(images).values({
             taskId: record.taskId,
             r2Url: result.value.r2Url,
@@ -73,30 +73,30 @@ export async function POST(request: NextRequest) {
       await db
         .update(tasks)
         .set({
-          status: "success",
+          status: 'success',
           completedAt: record.completeTime ?? now,
         })
         .where(eq(tasks.taskId, record.taskId));
 
-      taskEvents.emit("task:updated", record.taskId);
-    } else if (record.state === "fail") {
+      taskEvents.emit('task:updated', record.taskId);
+    } else if (record.state === 'fail') {
       await db
         .update(tasks)
         .set({
-          status: "fail",
+          status: 'fail',
           completedAt: Date.now(),
-          errorMsg: record.failMsg ?? "Generation failed",
+          errorMsg: record.failMsg ?? 'Generation failed',
         })
         .where(eq(tasks.taskId, record.taskId));
 
-      taskEvents.emit("task:updated", record.taskId);
+      taskEvents.emit('task:updated', record.taskId);
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[POST /api/callback]", err);
+    console.error('[POST /api/callback]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

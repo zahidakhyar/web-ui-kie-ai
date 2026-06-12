@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { tasks, images } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { db } from '@/lib/db';
+import { images, tasks } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   _request: NextRequest,
@@ -15,7 +15,7 @@ export async function GET(
     });
 
     if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
     const taskImages = await db.query.images.findMany({
@@ -25,9 +25,9 @@ export async function GET(
 
     return NextResponse.json({ task, images: taskImages });
   } catch (err) {
-    console.error("[GET /api/task/:taskId]", err);
+    console.error('[GET /api/task/:taskId]', err);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: 'Internal server error' },
       { status: 500 },
     );
   }

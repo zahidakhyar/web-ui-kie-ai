@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { Wand2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ModelSelector } from "./ModelSelector";
-import { ParameterField } from "./ParameterField";
-import { getModelById, DEFAULT_MODEL_ID } from "@/lib/models";
-import { ModelParameter } from "@/types";
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { DEFAULT_MODEL_ID, getModelById } from '@/lib/models';
+import { ModelParameter } from '@/types';
+import { Wand2 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { ModelSelector } from './ModelSelector';
+import { ParameterField } from './ParameterField';
 
 function buildDefaultValues(
   params: ModelParameter[],
@@ -16,9 +16,9 @@ function buildDefaultValues(
   return Object.fromEntries(
     params.map((p) => [
       p.key,
-      p.type === "image-upload"
+      p.type === 'image-upload'
         ? []
-        : (p.default ?? (p.type === "boolean" ? false : "")),
+        : (p.default ?? (p.type === 'boolean' ? false : '')),
     ]),
   );
 }
@@ -59,7 +59,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
     for (const param of model.parameters) {
       const v = values[param.key];
       if (param.required) {
-        if (param.type === "image-upload") {
+        if (param.type === 'image-upload') {
           if (!Array.isArray(v) || v.length === 0) {
             toast.error(`"${param.label}" requires at least one image.`);
             return;
@@ -73,7 +73,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
     // Auto-randomize seed if model has a seed parameter
     const submitParams = { ...values };
-    const seedParam = model.parameters.find((p) => p.key === "seed");
+    const seedParam = model.parameters.find((p) => p.key === 'seed');
     if (seedParam) {
       const randomSeed = Math.floor(Math.random() * 2147483647) + 1;
       submitParams.seed = randomSeed;
@@ -82,24 +82,24 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ modelId, params: submitParams }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? "Failed to start generation.");
+        toast.error(data.error ?? 'Failed to start generation.');
         return;
       }
 
       onTaskCreated(data.taskId as string);
-      toast.success("Generation started!");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      toast.success('Generation started!');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
-      toast.error("Network error. Please try again.");
+      toast.error('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
               param={param}
               value={
                 values[param.key] ??
-                (param.type === "image-upload" ? [] : (param.default ?? ""))
+                (param.type === 'image-upload' ? [] : (param.default ?? ''))
               }
               onChange={handleValueChange}
               disabled={isDisabled}
@@ -145,7 +145,7 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
         size="lg"
       >
         <Wand2 className="size-4" />
-        {loading ? "Starting..." : "Generate"}
+        {loading ? 'Starting...' : 'Generate'}
       </Button>
     </form>
   );

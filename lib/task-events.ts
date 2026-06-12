@@ -1,4 +1,4 @@
-import { EventEmitter } from "node:events";
+import { EventEmitter } from 'node:events';
 
 // Singleton that survives Next.js hot-module reloads in development
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

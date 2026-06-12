@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import useSWR from "swr";
-import Image from "next/image";
-import { Images, Upload, Loader2, ImageOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { TaskWithImages } from "@/types";
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TaskWithImages } from '@/types';
+import { ImageOff, Images, Loader2, Upload } from 'lucide-react';
+import Image from 'next/image';
+import { useState } from 'react';
+import useSWR from 'swr';
 
 interface UploadRecord {
   id: number;
@@ -36,26 +36,28 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
   // Fetch generated images (limit to 50 for quick picking)
   const { data: galleryData, isLoading: galleryLoading } = useSWR<{
     items: TaskWithImages[];
-  }>("/api/gallery?page=1&limit=50", fetcher, { revalidateOnFocus: false });
+  }>('/api/gallery?page=1&limit=50', fetcher, { revalidateOnFocus: false });
 
   // Fetch uploaded images
   const { data: uploadsData, isLoading: uploadsLoading } = useSWR<{
     uploads: UploadRecord[];
-  }>("/api/uploads?limit=50", fetcher, { revalidateOnFocus: false });
+  }>('/api/uploads?limit=50', fetcher, { revalidateOnFocus: false });
 
-  const generatedImages = galleryData?.items.flatMap((task) =>
-    task.images.map((img) => ({
-      id: img.id.toString(),
-      url: img.r2Url,
-      prompt: task.prompt,
-    }))
-  ) ?? [];
+  const generatedImages =
+    galleryData?.items.flatMap((task) =>
+      task.images.map((img) => ({
+        id: img.id.toString(),
+        url: img.r2Url,
+        prompt: task.prompt,
+      })),
+    ) ?? [];
 
-  const uploadedImages = uploadsData?.uploads.map((up) => ({
-    id: up.id.toString(),
-    url: up.r2Url,
-    prompt: up.fileName,
-  })) ?? [];
+  const uploadedImages =
+    uploadsData?.uploads.map((up) => ({
+      id: up.id.toString(),
+      url: up.r2Url,
+      prompt: up.fileName,
+    })) ?? [];
 
   function handleSelect(url: string) {
     onSelect(url);
@@ -74,10 +76,15 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
       />
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-6 gap-4">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold tracking-tight">Select an Image</DialogTitle>
+          <DialogTitle className="text-lg font-semibold tracking-tight">
+            Select an Image
+          </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="generated" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs
+          defaultValue="generated"
+          className="flex-1 flex flex-col overflow-hidden"
+        >
           <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
             <TabsTrigger value="generated" className="gap-1.5 text-xs">
               <Images className="size-3.5" />
@@ -89,7 +96,10 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="generated" className="flex-1 overflow-hidden outline-none">
+          <TabsContent
+            value="generated"
+            className="flex-1 overflow-hidden outline-none"
+          >
             {galleryLoading ? (
               <div className="flex h-full items-center justify-center">
                 <Loader2 className="size-6 animate-spin text-muted-foreground/60" />
@@ -97,8 +107,12 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
             ) : generatedImages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center p-8 border border-dashed rounded-lg">
                 <ImageOff className="size-10 text-muted-foreground/40 mb-2" />
-                <p className="text-sm font-medium text-muted-foreground">No generated images</p>
-                <p className="text-xs text-muted-foreground/60">Images you generate will appear here.</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No generated images
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  Images you generate will appear here.
+                </p>
               </div>
             ) : (
               <ScrollArea className="h-full pr-3">
@@ -111,7 +125,7 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
                     >
                       <Image
                         src={img.url}
-                        alt={img.prompt || "Generated image"}
+                        alt={img.prompt || 'Generated image'}
                         fill
                         sizes="(max-width: 768px) 33vw, 20vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -128,7 +142,10 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="uploads" className="flex-1 overflow-hidden outline-none">
+          <TabsContent
+            value="uploads"
+            className="flex-1 overflow-hidden outline-none"
+          >
             {uploadsLoading ? (
               <div className="flex h-full items-center justify-center">
                 <Loader2 className="size-6 animate-spin text-muted-foreground/60" />
@@ -136,8 +153,12 @@ export function GalleryPicker({ onSelect }: GalleryPickerProps) {
             ) : uploadedImages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center p-8 border border-dashed rounded-lg">
                 <ImageOff className="size-10 text-muted-foreground/40 mb-2" />
-                <p className="text-sm font-medium text-muted-foreground">No uploaded images</p>
-                <p className="text-xs text-muted-foreground/60">Images you upload will appear here.</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No uploaded images
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  Images you upload will appear here.
+                </p>
               </div>
             ) : (
               <ScrollArea className="h-full pr-3">

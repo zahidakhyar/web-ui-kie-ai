@@ -1,15 +1,15 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/layout/ThemeProvider";
-import { Header } from "@/components/layout/Header";
-import { Toaster } from "@/components/ui/sonner";
+import { Header } from '@/components/layout/Header';
+import { ThemeProvider } from '@/components/layout/ThemeProvider';
+import { Toaster } from '@/components/ui/sonner';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "KIE Image Generator",
-  description: "Personal AI image generation powered by KIE.ai",
+  title: 'KIE Image Generator',
+  description: 'Personal AI image generation powered by KIE.ai',
 };
 
 export default function RootLayout({
