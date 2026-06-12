@@ -548,6 +548,33 @@ export const MODELS: ModelConfig[] = [
       },
     ],
   },
+  {
+    id: "recraft/crisp-upscale",
+    name: "Crisp Upscale",
+    description:
+      "Upscale and enhance images to higher resolution with crisp details.",
+    provider: "KIE.ai",
+    tags: ["upscale", "image-enhancement"],
+    parameters: [
+      {
+        key: "image",
+        label: "Image to Upscale",
+        type: "image-upload",
+        required: true,
+        description:
+          "Upload the image you want to upscale or choose from your gallery. Supported formats: JPEG, PNG, WebP (max 10MB).",
+        maxFiles: 1,
+      },
+      {
+        key: "nsfw_checker",
+        label: "Content Safety Filter",
+        type: "boolean",
+        required: false,
+        description: "Enable content safety filter.",
+        default: false,
+      },
+    ],
+  },
 ];
 
 export function getModelById(id: string): ModelConfig | undefined {
