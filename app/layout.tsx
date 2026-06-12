@@ -1,3 +1,4 @@
+import { AuroraBackground } from '@/components/layout/AuroraBackground';
 import { Header } from '@/components/layout/Header';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
@@ -29,6 +30,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
+          <AuroraBackground />
           <Header />
           <main className="flex-1">{children}</main>
           <Toaster richColors position="bottom-right" />
