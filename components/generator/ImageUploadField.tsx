@@ -75,9 +75,9 @@ function getLibraryItemBorderClass(
   isAdded: boolean,
   isSelected: boolean,
 ): string {
-  if (isAdded) return 'opacity-40 cursor-not-allowed border-border';
-  if (isSelected) return 'border-primary ring-2 ring-primary/30';
-  return 'border-transparent hover:border-primary/50';
+  if (isAdded) return 'opacity-40 cursor-not-allowed border-border/40';
+  if (isSelected) return 'border-primary ring-2 ring-primary/35';
+  return 'border-transparent hover:border-primary/45 hover:scale-95 transition-all duration-200';
 }
 
 function LibraryContent({
@@ -122,7 +122,7 @@ function LibraryContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(record.r2Url)}
             className={cn(
-              'relative aspect-square rounded-md overflow-hidden border-2 transition-colors',
+              'relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 active:scale-95',
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -196,7 +196,7 @@ function GalleryPickerContent({
             disabled={isAdded}
             onClick={() => !isAdded && onToggle(img.r2Url)}
             className={cn(
-              'relative aspect-square rounded-md overflow-hidden border-2 transition-colors',
+              'relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 active:scale-95',
               getLibraryItemBorderClass(isAdded, isSelected),
             )}
           >
@@ -478,20 +478,20 @@ export function ImageUploadField({
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            'relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 cursor-pointer transition-colors select-none',
+            'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-6 cursor-pointer transition-all duration-200 select-none active:scale-[0.99]',
             isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/50 hover:bg-muted/30',
+              ? 'border-primary bg-primary/5 scale-[0.99]'
+              : 'border-border/60 hover:border-primary/45 hover:bg-primary/5',
           )}
         >
-          <div className="size-9 rounded-full bg-muted flex items-center justify-center">
-            <ImagePlus className="size-4 text-muted-foreground" />
+          <div className="size-9 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center">
+            <ImagePlus className="size-4 text-primary" />
           </div>
-          <div className="text-center">
-            <p className="text-sm font-medium">
+          <div className="text-center px-4">
+            <p className="text-sm font-semibold tracking-tight">
               {hasItems ? 'Add more images' : 'Upload reference images'}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
               Drag & drop or click · JPG, PNG, WebP, GIF, AVIF · max 10 MB ·{' '}
               {maxFiles - doneCount} remaining
             </p>
@@ -514,7 +514,7 @@ export function ImageUploadField({
           type="button"
           variant="outline"
           size="sm"
-          className="w-full"
+          className="w-full rounded-xl border-border/60 hover:bg-primary/5 hover:text-primary transition-colors duration-200"
           onClick={openPicker}
           disabled={disabled}
         >
@@ -528,14 +528,14 @@ export function ImageUploadField({
           {items.map((item) => (
             <div
               key={item.preview}
-              className="relative group aspect-square rounded-md overflow-hidden bg-muted border border-border/50"
+              className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border/50 hover:ring-2 hover:ring-primary/40 transition-all duration-300"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.preview}
                 alt={item.fileName}
                 className={cn(
-                  'w-full h-full object-cover transition-opacity',
+                  'w-full h-full object-cover transition-opacity duration-300',
                   item.status !== 'done' && 'opacity-50',
                 )}
               />
@@ -546,7 +546,7 @@ export function ImageUploadField({
               )}
               {item.status === 'error' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/50 p-1">
-                  <AlertCircle className="size-4 text-white" />
+                  <AlertCircle className="size-4 text-white animate-bounce" />
                   <p className="text-white text-[10px] text-center mt-1 leading-tight line-clamp-2">
                     {item.errorMsg}
                   </p>
@@ -556,7 +556,7 @@ export function ImageUploadField({
                 <button
                   type="button"
                   onClick={() => removeItem(item.preview)}
-                  className="absolute top-1 right-1 size-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                  className="absolute top-1 right-1 size-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black/80 hover:scale-110"
                   aria-label="Remove image"
                 >
                   <X className="size-3 text-white" />
@@ -568,9 +568,9 @@ export function ImageUploadField({
       )}
 
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border-border/60 bg-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Select Image</DialogTitle>
+            <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">Select Image</DialogTitle>
           </DialogHeader>
 
           <Tabs
@@ -578,18 +578,18 @@ export function ImageUploadField({
             onValueChange={handlePickerTabChange}
             className="flex flex-col flex-1 min-h-0"
           >
-            <TabsList className="w-full">
-              <TabsTrigger value="uploads" className="flex-1">
+            <TabsList className="w-full bg-muted/60 p-1 rounded-xl">
+              <TabsTrigger value="uploads" className="flex-1 rounded-lg text-xs py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
                 Previous Uploads
               </TabsTrigger>
-              <TabsTrigger value="gallery" className="flex-1">
+              <TabsTrigger value="gallery" className="flex-1 rounded-lg text-xs py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
                 Gallery
               </TabsTrigger>
             </TabsList>
 
             <TabsContent
               value="uploads"
-              className="flex-1 overflow-y-auto min-h-0 mt-2"
+              className="flex-1 overflow-y-auto min-h-0 mt-3"
             >
               <LibraryContent
                 loading={libraryLoading}
@@ -602,7 +602,7 @@ export function ImageUploadField({
 
             <TabsContent
               value="gallery"
-              className="flex-1 overflow-y-auto min-h-0 mt-2"
+              className="flex-1 overflow-y-auto min-h-0 mt-3"
             >
               <GalleryPickerContent
                 loading={galleryLoading}
@@ -614,8 +614,8 @@ export function ImageUploadField({
             </TabsContent>
           </Tabs>
 
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between pt-4 border-t border-border/40">
+            <p className="text-xs font-medium text-muted-foreground">
               {selected.size > 0
                 ? `${selected.size} selected`
                 : 'Click images to select'}
@@ -625,6 +625,7 @@ export function ImageUploadField({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="rounded-xl border-border/60 hover:bg-muted/40 transition-colors"
                 onClick={() => setPickerOpen(false)}
               >
                 Cancel
@@ -632,6 +633,7 @@ export function ImageUploadField({
               <Button
                 type="button"
                 size="sm"
+                className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 disabled={selected.size === 0}
                 onClick={confirmPicker}
               >

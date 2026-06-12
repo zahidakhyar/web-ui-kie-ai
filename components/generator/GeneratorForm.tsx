@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { DEFAULT_MODEL_ID, getModelById } from '@/lib/models';
 import { ModelParameter } from '@/types';
-import { Wand2 } from 'lucide-react';
+import { Loader2, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ModelSelector } from './ModelSelector';
@@ -109,10 +109,12 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
   const isDisabled = disabled || loading;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-18rem)] py-2 pr-1">
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Model</p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-19rem)] py-2 pr-1 scrollbar-thin">
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Model
+          </p>
           <ModelSelector
             value={modelId}
             onChange={handleModelChange}
@@ -120,9 +122,9 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
           />
         </div>
 
-        <Separator />
+        <Separator className="bg-border/60" />
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {model?.parameters.map((param) => (
             <ParameterField
               key={param.key}
@@ -140,11 +142,14 @@ export function GeneratorForm({ onTaskCreated, disabled }: GeneratorFormProps) {
 
       <Button
         type="submit"
-        className="w-full gap-2"
+        className="w-full h-11 gap-2 rounded-xl bg-gradient-to-r from-[var(--brand-from)] to-[var(--brand-to)] text-primary-foreground font-medium hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-primary/10"
         disabled={isDisabled}
-        size="lg"
       >
-        <Wand2 className="size-4" />
+        {loading ? (
+          <Loader2 className="size-4 animate-spin text-primary-foreground" />
+        ) : (
+          <Wand2 className="size-4" />
+        )}
         {loading ? 'Starting...' : 'Generate'}
       </Button>
     </form>

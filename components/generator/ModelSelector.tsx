@@ -31,12 +31,12 @@ export function ModelSelector({
         onValueChange={(v) => v !== null && onChange(v)}
         disabled={disabled}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full rounded-xl border-border/60 focus:ring-2 focus:ring-primary/30">
           <SelectValue placeholder="Select a model..." />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="rounded-xl border-border/60">
           {MODELS.map((model) => (
-            <SelectItem key={model.id} value={model.id}>
+            <SelectItem key={model.id} value={model.id} className="rounded-lg">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{model.name}</span>
                 <span className="text-muted-foreground text-xs">
@@ -49,18 +49,18 @@ export function ModelSelector({
       </Select>
 
       {selected && (
-        <Card className="border-dashed bg-muted/30">
+        <Card className="rounded-xl border border-primary/10 bg-primary/5 shadow-sm shadow-primary/5">
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground leading-relaxed">
               {selected.description}
             </p>
             {selected.tags && selected.tags.length > 0 && (
-              <div className="flex gap-1 mt-2 flex-wrap">
+              <div className="flex gap-1.5 mt-2 flex-wrap">
                 {selected.tags.map((tag) => (
                   <Badge
                     key={tag}
                     variant="secondary"
-                    className="text-xs px-1.5 py-0"
+                    className="text-[10px] font-mono tracking-wider uppercase bg-primary/10 text-primary border border-primary/10 px-1.5 py-0"
                   >
                     {tag}
                   </Badge>
