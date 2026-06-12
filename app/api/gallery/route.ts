@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { deleteImage } from '@/lib/r2';
 import { images, tasks } from '@/lib/schema';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, asc, eq, inArray, like, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -11,9 +11,31 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '24', 10));
     const offset = (page - 1) * limit;
 
+    const model = searchParams.get('model');
+    const search = searchParams.get('search');
+    const sort = searchParams.get('sort') ?? 'newest';
+
+    const conditions = [eq(tasks.status, 'success')];
+    if (model && model !== 'all') {
+      conditions.push(eq(tasks.model, model));
+    }
+    if (search) {
+      conditions.push(like(tasks.prompt, `%${search}%`));
+    }
+
+    const whereClause = and(...conditions);
+    const orderBy = sort === 'oldest' ? [asc(tasks.completedAt)] : [desc(tasks.completedAt)];
+
+    // Get total matching count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(whereClause);
+    const total = countResult[0]?.count ?? 0;
+
     const completedTasks = await db.query.tasks.findMany({
-      where: eq(tasks.status, 'success'),
-      orderBy: [desc(tasks.completedAt)],
+      where: whereClause,
+      orderBy,
       limit,
       offset,
     });
@@ -42,7 +64,7 @@ export async function GET(request: NextRequest) {
       images: imagesByTask[task.taskId] ?? [],
     }));
 
-    return NextResponse.json({ items, page, limit });
+    return NextResponse.json({ items, total, page, limit });
   } catch (err) {
     console.error('[GET /api/gallery]', err);
     return NextResponse.json(
