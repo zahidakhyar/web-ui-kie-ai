@@ -19,7 +19,6 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
-import Image from 'next/image';
 import { toast } from 'sonner';
 
 interface UploadRecord {
@@ -114,7 +113,7 @@ export function ImageDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl p-0 overflow-hidden rounded-2xl border border-border/60 bg-black/95 text-white backdrop-blur-xl h-[90vh] md:h-[80vh] flex flex-col md:flex-row gap-0">
+      <DialogContent className="max-w-6xl sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-6xl p-0 overflow-hidden rounded-2xl border border-border/60 bg-black/95 text-white backdrop-blur-xl h-[90vh] md:h-[80vh] flex flex-col md:flex-row gap-0">
         <DialogTitle className="sr-only">{prompt || fileName}</DialogTitle>
 
         {/* Left: Image Viewer */}
@@ -124,14 +123,11 @@ export function ImageDetailModal({
             onClick={() => setZoom(zoom === 'fit' ? 'actual' : 'fit')}
           >
             {imageUrl && (
-              <Image
+              <img
                 src={imageUrl}
                 alt={prompt || fileName}
-                fill={zoom === 'fit'}
-                width={zoom === 'actual' ? (width || 1024) : undefined}
-                height={zoom === 'actual' ? (height || 1024) : undefined}
-                className={zoom === 'fit' ? 'object-contain p-4' : 'object-none p-4'}
-                priority
+                className={zoom === 'fit' ? 'max-w-full max-h-full object-contain p-4' : 'max-none p-4'}
+                style={zoom === 'actual' && width && height ? { width: `${width}px`, height: `${height}px` } : undefined}
               />
             )}
           </div>
