@@ -145,9 +145,9 @@ export function GenerationProgress({
   return (
     <Card
       className={cn(
-        'overflow-hidden transition-all',
-        state === 'fail' && 'border-destructive/40',
-        state === 'success' && 'border-emerald-500/30',
+        'overflow-hidden rounded-2xl transition-all border-border/60 bg-card/45 backdrop-blur-sm shadow-sm',
+        state === 'fail' && 'border-destructive/40 bg-destructive/5',
+        state === 'success' && 'border-primary/30 shadow-primary/5',
       )}
     >
       <CardContent className="p-0">
@@ -160,7 +160,7 @@ export function GenerationProgress({
                 {statusLabel(state)}
               </p>
               {task?.prompt && (
-                <p className="text-xs text-muted-foreground mt-1 truncate max-w-xs">
+                <p className="text-xs text-muted-foreground mt-1 truncate max-w-xs font-mono">
                   {task.prompt}
                 </p>
               )}
@@ -170,7 +170,7 @@ export function GenerationProgress({
           <div className="flex items-center gap-2 shrink-0">
             <Badge
               variant={state === 'fail' ? 'destructive' : 'secondary'}
-              className="text-xs font-mono"
+              className="text-xs font-mono px-2 py-0.5 rounded-md border-primary/10"
             >
               {taskId.slice(0, 8)}
             </Badge>
@@ -178,7 +178,7 @@ export function GenerationProgress({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-muted-foreground hover:text-destructive"
+                className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                 onClick={onDelete}
                 title="Dismiss"
               >
@@ -202,21 +202,21 @@ export function GenerationProgress({
 
         {/* Body */}
         {state === 'fail' && task?.errorMsg && (
-          <div className="mx-4 mb-4 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">
+          <div className="mx-4 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2">
             <p className="text-xs text-destructive">{task.errorMsg}</p>
           </div>
         )}
 
         {state === 'waiting' && (
           <div className="mx-4 mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <Sparkles className="size-3.5 shrink-0" />
-            <span>This may take 15–60 seconds…</span>
+            <Sparkles className="size-3.5 shrink-0 text-primary animate-pulse" />
+            <span>This may take 15-60 seconds...</span>
           </div>
         )}
 
         {state === 'pending' && (
           <p className="mx-4 mb-4 text-xs text-muted-foreground">
-            Waiting in queue…
+            Waiting in queue...
           </p>
         )}
 
@@ -230,28 +230,28 @@ export function GenerationProgress({
             {taskImages.map((img) => (
               <div
                 key={img.id}
-                className="group relative rounded-lg overflow-hidden bg-muted aspect-square"
+                className="group relative rounded-xl overflow-hidden bg-muted aspect-square border border-border/40 hover:ring-2 hover:ring-primary/40 transition-all duration-300"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={img.r2Url}
                   alt="Generated"
-                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                  className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-end justify-end p-2">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end justify-end p-2">
                   <a
                     href={img.r2Url}
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="size-8 shadow-lg"
+                      className="size-8 shadow-lg hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors duration-200"
                       title="Download"
                     >
                       <Download className="size-3.5" />
