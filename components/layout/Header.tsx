@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Wand2, Images, Coins } from "lucide-react";
+import { Moon, Sun, Wand2, Images, Coins, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/", label: "Generate", icon: Wand2 },
+  { href: "/upscale", label: "Upscale", icon: Sparkles },
   { href: "/gallery", label: "Gallery", icon: Images },
 ];
 
