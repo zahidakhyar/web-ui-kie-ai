@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
@@ -14,6 +15,7 @@ import {
   Check,
   FolderOpen,
   ImagePlus,
+  Images,
   Loader2,
   Upload,
   X,
@@ -75,9 +77,9 @@ function getLibraryItemBorderClass(
   isAdded: boolean,
   isSelected: boolean,
 ): string {
-  if (isAdded) return 'opacity-40 cursor-not-allowed border-border/40';
-  if (isSelected) return 'border-primary ring-2 ring-primary/35';
-  return 'border-transparent hover:border-primary/45 hover:scale-95 transition-all duration-200';
+  if (isAdded) return 'opacity-40 cursor-not-allowed border-border/30';
+  if (isSelected) return 'border-primary ring-4 ring-primary/10 scale-[0.98]';
+  return 'border-border/40 hover:border-primary/50 hover:ring-4 hover:ring-primary/10 transition-all duration-300';
 }
 
 function LibraryContent({
@@ -95,62 +97,70 @@ function LibraryContent({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
   }
 
   if (library.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-        <Upload className="size-8 mb-3 opacity-40" />
-        <p className="text-sm">No images uploaded yet</p>
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-border/60 rounded-xl bg-muted/10">
+        <Upload className="size-8 mb-3 opacity-40 text-muted-foreground/60" />
+        <p className="text-sm font-medium">No uploaded images yet</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Upload files on the generator dashboard</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-1">
-      {library.map((record) => {
-        const isAdded = addedUrls.has(record.r2Url);
-        const isSelected = selected.has(record.r2Url);
-        return (
-          <button
-            key={record.id}
-            type="button"
-            disabled={isAdded}
-            onClick={() => !isAdded && onToggle(record.r2Url)}
-            className={cn(
-              'relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 active:scale-95',
-              getLibraryItemBorderClass(isAdded, isSelected),
-            )}
-          >
-            <Image
-              src={record.r2Url}
-              alt={record.fileName}
-              fill
-              sizes="(max-width: 640px) 33vw, 25vw"
-              className="object-cover"
-            />
-            {isSelected && (
-              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                <div className="size-6 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="size-3.5 text-primary-foreground" />
-                </div>
+    <ScrollArea className="h-full pr-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-1 pb-6">
+        {library.map((record) => {
+          const isAdded = addedUrls.has(record.r2Url);
+          const isSelected = selected.has(record.r2Url);
+          return (
+            <button
+              key={record.id}
+              type="button"
+              disabled={isAdded}
+              onClick={() => !isAdded && onToggle(record.r2Url)}
+              className={cn(
+                'group relative w-full aspect-square rounded-xl overflow-hidden border bg-muted transition-all duration-300 active:scale-[0.97] cursor-pointer',
+                getLibraryItemBorderClass(isAdded, isSelected),
+              )}
+            >
+              <Image
+                src={record.r2Url}
+                alt={record.fileName}
+                fill
+                sizes="(max-width: 768px) 50vw, 20vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/70 backdrop-blur-[1px] transition-all duration-300 flex flex-col justify-end p-3">
+                <p className="text-[11px] font-medium leading-normal text-zinc-100 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0 duration-300">
+                  {record.fileName}
+                </p>
               </div>
-            )}
-            {isAdded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="size-6 rounded-full bg-muted flex items-center justify-center">
-                  <Check className="size-3.5 text-muted-foreground" />
+              {isSelected && (
+                <div className="absolute inset-0 bg-primary/10 flex items-center justify-center backdrop-blur-[0.5px]">
+                  <div className="size-6 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+                    <Check className="size-3.5 text-primary-foreground stroke-[3]" />
+                  </div>
                 </div>
-              </div>
-            )}
-          </button>
-        );
-      })}
-    </div>
+              )}
+              {isAdded && (
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-[0.5px]">
+                  <div className="size-6 rounded-full bg-muted border border-border/60 flex items-center justify-center">
+                    <Check className="size-3.5 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -169,62 +179,70 @@ function GalleryPickerContent({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-6 animate-spin text-primary" />
       </div>
     );
   }
 
   if (images.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-        <Upload className="size-8 mb-3 opacity-40" />
-        <p className="text-sm">No generated images yet</p>
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-border/60 rounded-xl bg-muted/10">
+        <Upload className="size-8 mb-3 opacity-40 text-muted-foreground/60" />
+        <p className="text-sm font-medium">No generated images yet</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Images you generate will appear here</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-1">
-      {images.map((img) => {
-        const isAdded = addedUrls.has(img.r2Url);
-        const isSelected = selected.has(img.r2Url);
-        return (
-          <button
-            key={img.imageId}
-            type="button"
-            disabled={isAdded}
-            onClick={() => !isAdded && onToggle(img.r2Url)}
-            className={cn(
-              'relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 active:scale-95',
-              getLibraryItemBorderClass(isAdded, isSelected),
-            )}
-          >
-            <Image
-              src={img.r2Url}
-              alt={img.prompt}
-              fill
-              sizes="(max-width: 640px) 33vw, 25vw"
-              className="object-cover"
-            />
-            {isSelected && (
-              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                <div className="size-6 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="size-3.5 text-primary-foreground" />
-                </div>
+    <ScrollArea className="h-full pr-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-1 pb-6">
+        {images.map((img) => {
+          const isAdded = addedUrls.has(img.r2Url);
+          const isSelected = selected.has(img.r2Url);
+          return (
+            <button
+              key={img.imageId}
+              type="button"
+              disabled={isAdded}
+              onClick={() => !isAdded && onToggle(img.r2Url)}
+              className={cn(
+                'group relative w-full aspect-square rounded-xl overflow-hidden border bg-muted transition-all duration-300 active:scale-[0.97] cursor-pointer',
+                getLibraryItemBorderClass(isAdded, isSelected),
+              )}
+            >
+              <Image
+                src={img.r2Url}
+                alt={img.prompt}
+                fill
+                sizes="(max-width: 768px) 50vw, 20vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/70 backdrop-blur-[1px] transition-all duration-300 flex flex-col justify-end p-3">
+                <p className="text-[11px] font-medium leading-normal text-zinc-100 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0 duration-300">
+                  {img.prompt}
+                </p>
               </div>
-            )}
-            {isAdded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="size-6 rounded-full bg-muted flex items-center justify-center">
-                  <Check className="size-3.5 text-muted-foreground" />
+              {isSelected && (
+                <div className="absolute inset-0 bg-primary/10 flex items-center justify-center backdrop-blur-[0.5px]">
+                  <div className="size-6 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+                    <Check className="size-3.5 text-primary-foreground stroke-[3]" />
+                  </div>
                 </div>
-              </div>
-            )}
-          </button>
-        );
-      })}
-    </div>
+              )}
+              {isAdded && (
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center backdrop-blur-[0.5px]">
+                  <div className="size-6 rounded-full bg-muted border border-border/60 flex items-center justify-center">
+                    <Check className="size-3.5 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -566,28 +584,33 @@ export function ImageUploadField({
       )}
 
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border-border/60 bg-card/95 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">Select Image</DialogTitle>
+        <DialogContent className="max-w-5xl sm:max-w-5xl h-[85vh] flex flex-col p-6 gap-6 rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl">
+          <DialogHeader className="pb-2 border-b border-border/40">
+            <DialogTitle className="text-xl font-bold tracking-tight text-foreground">Select Image</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Select reference images from your uploads or generated gallery
+            </p>
           </DialogHeader>
 
           <Tabs
             value={activePickerTab}
             onValueChange={handlePickerTabChange}
-            className="flex flex-col flex-1 min-h-0"
+            className="flex flex-col flex-1 min-h-0 overflow-hidden"
           >
-            <TabsList className="w-full bg-muted/60 p-1 rounded-xl">
-              <TabsTrigger value="uploads" className="flex-1 rounded-lg text-xs py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+            <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4 bg-muted/60 p-1 rounded-xl">
+              <TabsTrigger value="uploads" className="gap-1.5 text-xs rounded-lg py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200">
+                <Upload className="size-3.5" />
                 Previous Uploads
               </TabsTrigger>
-              <TabsTrigger value="gallery" className="flex-1 rounded-lg text-xs py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+              <TabsTrigger value="gallery" className="gap-1.5 text-xs rounded-lg py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all duration-200">
+                <Images className="size-3.5" />
                 Gallery
               </TabsTrigger>
             </TabsList>
 
             <TabsContent
               value="uploads"
-              className="flex-1 overflow-y-auto min-h-0 mt-3"
+              className="flex-1 overflow-hidden min-h-0 mt-1 outline-none"
             >
               <LibraryContent
                 loading={libraryLoading}
@@ -600,7 +623,7 @@ export function ImageUploadField({
 
             <TabsContent
               value="gallery"
-              className="flex-1 overflow-y-auto min-h-0 mt-3"
+              className="flex-1 overflow-hidden min-h-0 mt-1 outline-none"
             >
               <GalleryPickerContent
                 loading={galleryLoading}
@@ -613,7 +636,7 @@ export function ImageUploadField({
           </Tabs>
 
           <div className="flex items-center justify-between pt-4 border-t border-border/40">
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground">
               {selected.size > 0
                 ? `${selected.size} selected`
                 : 'Click images to select'}
@@ -631,7 +654,7 @@ export function ImageUploadField({
               <Button
                 type="button"
                 size="sm"
-                className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-4 font-semibold active:scale-[0.98]"
                 disabled={selected.size === 0}
                 onClick={confirmPicker}
               >
