@@ -27,7 +27,7 @@ Session cookie `auth_session` akan memiliki format: `expiry:signature`.
 * `expiry`: Unix timestamp (ms) saat session berakhir (30 hari dari waktu login).
 * `signature`: `sha256(expiry + ":" + ADMIN_PASSWORD + ":" + AUTH_SECRET)`.
 
-Validasi di `middleware.ts`:
+Validasi di `proxy.ts`:
 1. Baca cookie `auth_session`.
 2. Jika tidak ada, redirect ke `/login` (jika request bukan untuk jalur bypass).
 3. Pisahkan cookie menjadi `expiry` dan `signature`.
@@ -37,7 +37,7 @@ Validasi di `middleware.ts`:
 
 ### 3. Files to Add/Modify
 
-#### `middleware.ts` (Root Directory)
+#### `proxy.ts` (Root Directory)
 Menyaring setiap request masuk dan memvalidasi cookie.
 * **Matcher**: `/(.*)`
 * **Bypass paths**:
