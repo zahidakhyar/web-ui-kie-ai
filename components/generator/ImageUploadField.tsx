@@ -230,7 +230,6 @@ function GalleryPickerContent({
 
 export function ImageUploadField({
   id,
-  value,
   onChange,
   maxFiles = 5,
   disabled,
@@ -328,7 +327,6 @@ export function ImageUploadField({
         );
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [items, maxFiles, onChange],
   );
 

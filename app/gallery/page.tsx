@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Images, Upload } from 'lucide-react';
 
 export const metadata = {
-  title: 'Gallery — KIE Image Generator',
+  title: 'Gallery - KIE Image Generator',
 };
 
 export default function GalleryPage() {
