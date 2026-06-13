@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UploadedImage {
   /** Local object URL for preview */
@@ -248,6 +248,7 @@ function GalleryPickerContent({
 
 export function ImageUploadField({
   id,
+  value,
   onChange,
   maxFiles = 5,
   disabled,
@@ -255,6 +256,32 @@ export function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadedImage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    setItems((prev) => {
+      // 1. Keep items that are uploading/error, or done and still in value prop
+      const updated = prev.filter(
+        (item) =>
+          item.status !== 'done' || (item.url && value.includes(item.url)),
+      );
+
+      // 2. Find URLs in value that do not exist in updated items
+      const existingUrls = new Set(
+        updated.map((item) => item.url).filter(Boolean),
+      );
+      const newUrls = value.filter((url) => !existingUrls.has(url));
+
+      // 3. Map new URLs to UploadedImage items
+      const newItems: UploadedImage[] = newUrls.map((url) => ({
+        preview: url,
+        url,
+        status: 'done',
+        fileName: url.substring(url.lastIndexOf('/') + 1) || 'image',
+      }));
+
+      return [...updated, ...newItems];
+    });
+  }, [value]);
 
   // Library picker state
   const [pickerOpen, setPickerOpen] = useState(false);
