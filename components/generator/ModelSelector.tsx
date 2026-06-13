@@ -1,15 +1,24 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
+import * as React from 'react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { MODELS } from '@/lib/models';
+import { ChevronsUpDown } from 'lucide-react';
 
 interface ModelSelectorProps {
   value: string;
@@ -22,31 +31,67 @@ export function ModelSelector({
   onChange,
   disabled,
 }: ModelSelectorProps) {
+  const [open, setOpen] = React.useState(false);
   const selected = MODELS.find((m) => m.id === value);
 
   return (
     <div className="space-y-2">
-      <Select
-        value={value}
-        onValueChange={(v) => v !== null && onChange(v)}
-        disabled={disabled}
-      >
-        <SelectTrigger className="w-full rounded-xl border-border/60 focus:ring-2 focus:ring-primary/30">
-          <SelectValue placeholder="Select a model..." />
-        </SelectTrigger>
-        <SelectContent className="rounded-xl border-border/60">
-          {MODELS.map((model) => (
-            <SelectItem key={model.id} value={model.id} className="rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{model.name}</span>
-                <span className="text-muted-foreground text-xs">
-                  {model.provider}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between rounded-xl border-border/60 text-left font-normal! hover:bg-transparent"
+              disabled={disabled}
+            >
+              {selected ? (
+                <span className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">
+                    {selected.name}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {selected.provider}
+                  </span>
                 </span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+              ) : (
+                'Select a model...'
+              )}
+              <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+            </Button>
+          }
+        />
+        <PopoverContent className="w-[var(--popover-anchor-width)] p-0 rounded-xl border-border/60">
+          <Command>
+            <CommandInput placeholder="Search model..." />
+            <CommandList>
+              <CommandEmpty>No model found.</CommandEmpty>
+              <CommandGroup>
+                {MODELS.map((model) => (
+                  <CommandItem
+                    key={model.id}
+                    value={model.name}
+                    onSelect={() => {
+                      onChange(model.id);
+                      setOpen(false);
+                    }}
+                    data-checked={model.id === value}
+                    className="rounded-lg! py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{model.name}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {model.provider}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
 
       {selected && (
         <Card className="rounded-xl border border-primary/10 bg-primary/5 shadow-sm shadow-primary/5">
