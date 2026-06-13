@@ -88,6 +88,7 @@ export interface ModelParameter {
   default?: string | number | boolean;
   /** For image-upload: maximum number of images allowed */
   maxFiles?: number;
+  advanced?: boolean;
 }
 
 export interface ModelConfig {
