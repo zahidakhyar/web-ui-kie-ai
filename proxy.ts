@@ -42,7 +42,9 @@ export async function proxy(request: NextRequest) {
   // AUTH_SECRET is required once a password is set — never fall back to a
   // hardcoded salt, since that string is public in this open-source repo.
   if (!secret) {
-    console.warn('AUTH_SECRET is not set. Denying access until it is configured.');
+    console.warn(
+      'AUTH_SECRET is not set. Denying access until it is configured.',
+    );
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
