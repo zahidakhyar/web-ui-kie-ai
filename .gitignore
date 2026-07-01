@@ -49,6 +49,9 @@ next-env.d.ts
 # Internal planning docs (not for public release)
 /docs/superpowers/
 
+# Local agent skills/tooling (not for public release)
+/.agents/
+
 # Environment variables
 .env
 .env.local
