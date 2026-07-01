@@ -47,6 +47,8 @@ Edit `.env.local`:
 | `R2_BUCKET_NAME` | ✅ | R2 bucket name |
 | `R2_PUBLIC_URL` | ⚠️ | Public URL of your R2 bucket (or r2.dev subdomain) |
 | `DATABASE_PATH` | — | SQLite DB path (default: `./data/app.db`) |
+| `ADMIN_PASSWORD` | — | Password gate for the app (leave unset to disable auth) |
+| `AUTH_SECRET` | ⚠️ | Required if `ADMIN_PASSWORD` is set — secret used to sign the session cookie |
 
 > **Callbacks in development:** Use [ngrok](https://ngrok.com/) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose `localhost:3000` publicly. Set the tunnel URL as `NEXT_PUBLIC_APP_URL`.
 
@@ -102,3 +104,11 @@ components/
   gallery/              — Grid and image cards
   layout/               — Header, theme provider
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE)
