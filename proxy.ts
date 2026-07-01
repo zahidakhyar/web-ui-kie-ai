@@ -33,10 +33,19 @@ export async function proxy(request: NextRequest) {
   const password = process.env.ADMIN_PASSWORD;
   const secret = process.env.AUTH_SECRET;
 
-  // Jika password belum disetting, jangan kunci website agar tidak mengunci user di awal
+  // If the password is not set, don't lock the website to avoid locking out the user initially
   if (!password) {
     console.warn('ADMIN_PASSWORD is not set. Access granted without auth.');
     return NextResponse.next();
+  }
+
+  // AUTH_SECRET is required once a password is set — never fall back to a
+  // hardcoded salt, since that string is public in this open-source repo.
+  if (!secret) {
+    console.warn(
+      'AUTH_SECRET is not set. Denying access until it is configured.',
+    );
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   const cookie = request.cookies.get('auth_session')?.value;
@@ -57,9 +66,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Hitung signature yang diharapkan
-  const salt = secret || 'default_fallback_secret_123';
-  const expectedSignature = await sha256(`${expiry}:${password}:${salt}`);
+  // Compute the expected signature
+  const expectedSignature = await sha256(`${expiry}:${password}:${secret}`);
 
   if (signature !== expectedSignature) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -71,7 +79,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Cocokkan semua path kecuali file statis
+     * Match all paths except static files
      */
     '/((?!_next/static|_next/image|favicon.ico|images/|uploads/).*)',
   ],

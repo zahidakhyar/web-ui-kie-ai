@@ -20,14 +20,20 @@ export async function loginAction(passwordInput: string) {
     };
   }
 
+  if (!secret) {
+    return {
+      success: false,
+      error: 'AUTH_SECRET belum dikonfigurasi di server.',
+    };
+  }
+
   if (passwordInput !== password) {
     return { success: false, error: 'Password salah!' };
   }
 
   const cookieStore = await cookies();
   const expiry = Date.now() + 1000 * 60 * 60 * 24 * 30; // 30 hari
-  const salt = secret || 'default_fallback_secret_123';
-  const signature = await sha256(`${expiry}:${password}:${salt}`);
+  const signature = await sha256(`${expiry}:${password}:${secret}`);
 
   cookieStore.set('auth_session', `${expiry}:${signature}`, {
     httpOnly: true,

@@ -24,7 +24,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError('Password wajib diisi');
+      setError('Password is required');
       return;
     }
 
@@ -34,14 +34,14 @@ export default function LoginPage() {
     try {
       const res = await loginAction(password);
       if (res.success) {
-        toast.success('Login berhasil!');
+        toast.success('Login successful!');
         router.push('/');
         router.refresh();
       } else {
-        setError(res.error || 'Password salah!');
+        setError(res.error || 'Incorrect password!');
       }
     } catch (err) {
-      setError('Terjadi kesalahan sistem.');
+      setError('A system error occurred.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -61,10 +61,10 @@ export default function LoginPage() {
               <Lock className="size-6 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Akses Terproteksi
+              Protected Access
             </CardTitle>
             <CardDescription>
-              Masukkan password admin untuk masuk ke aplikasi.
+              Enter the admin password to access the application.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -93,11 +93,11 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Memverifikasi...
+                    Verifying...
                   </>
                 ) : (
                   <>
-                    <span className="relative z-10">Masuk</span>
+                    <span className="relative z-10">Log In</span>
                     <div className="absolute inset-0 bg-primary-foreground/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   </>
                 )}
