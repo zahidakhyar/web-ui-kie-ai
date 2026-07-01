@@ -1,5 +1,7 @@
 # KIE AI Image Generator
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/web-ui-kie-ai)
+
 Personal AI image generation web app powered by [KIE.ai](https://kie.ai), with Cloudflare R2 storage and a responsive gallery.
 
 ## Features
