@@ -82,3 +82,61 @@ describe('getAudioSource', () => {
     expect(() => getAudioSource('constructor')).toThrow(/Unknown audio source/);
   });
 });
+
+describe('vocal mode', () => {
+  it('sends the lyrics as prompt and the style separately, because Suno sings prompt verbatim', async () => {
+    const spy = vi.mocked(generateMusic).mockResolvedValue('task-5');
+
+    await getAudioSource('generate').start({
+      prompt: 'dark trap, heavy 808',
+      instrumental: false,
+      lyrics: 'first line\nsecond line',
+      vocalGender: 'f',
+    });
+
+    const arg = spy.mock.calls[0][0];
+    expect(arg.prompt).toBe('first line\nsecond line');
+    expect(arg.style).toBe('dark trap, heavy 808');
+    expect(arg.instrumental).toBe(false);
+    expect(arg.vocalGender).toBe('f');
+  });
+
+  it('omits vocalGender when none is chosen', async () => {
+    const spy = vi.mocked(generateMusic).mockResolvedValue('task-6');
+
+    await getAudioSource('generate').start({
+      prompt: 'dark trap',
+      instrumental: false,
+      lyrics: 'words',
+    });
+
+    expect(spy.mock.calls[0][0]).not.toHaveProperty('vocalGender');
+  });
+
+  it('refuses vocal mode without lyrics', async () => {
+    await expect(
+      getAudioSource('generate').start({ prompt: 'dark trap', instrumental: false }),
+    ).rejects.toThrow(/Lyrics are required/);
+  });
+
+  it('refuses vocal mode on the loop endpoint, which has no vocal fields at all', async () => {
+    await expect(
+      getAudioSource('sounds').start({
+        prompt: 'dark trap',
+        instrumental: false,
+        lyrics: 'words',
+      }),
+    ).rejects.toThrow(/cannot generate vocals/);
+  });
+
+  it('still sends the style as prompt when instrumental', async () => {
+    const spy = vi.mocked(generateMusic).mockResolvedValue('task-7');
+
+    await getAudioSource('generate').start({ prompt: 'lofi piano', instrumental: true });
+
+    const arg = spy.mock.calls[0][0];
+    expect(arg.prompt).toBe('lofi piano');
+    expect(arg.style).toBe('lofi piano');
+  });
+});
+

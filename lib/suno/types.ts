@@ -45,6 +45,7 @@ export interface GenerateSoundsInput {
 }
 
 export interface GenerateMusicInput {
+  /** In custom mode with instrumental false, Suno sings this verbatim as the lyrics. */
   prompt: string;
   model: SunoModel;
   customMode: boolean;
@@ -52,4 +53,6 @@ export interface GenerateMusicInput {
   style?: string;
   title?: string;
   duration?: number;
+  /** Only effective in custom mode, and the docs say it shifts probability rather than guaranteeing. */
+  vocalGender?: 'm' | 'f';
 }

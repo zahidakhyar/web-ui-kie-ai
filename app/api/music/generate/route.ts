@@ -8,6 +8,8 @@ export async function POST(request: NextRequest) {
     prompt?: string;
     source?: string;
     instrumental?: boolean;
+    lyrics?: string;
+    vocalGender?: string;
     tempo?: number;
     musicalKey?: string;
     targetSeconds?: number;
@@ -23,9 +25,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `unknown source: ${sourceId}` }, { status: 400 });
   }
 
+  const instrumental = body.instrumental ?? true;
+  const lyrics = body.lyrics?.trim();
+
+  // Checked here as well as in the audio source, so an obvious mistake is a 400
+  // rather than a 502 after the request has already left for Suno.
+  if (!instrumental && !lyrics) {
+    return NextResponse.json(
+      { error: 'lyrics are required when the track is not instrumental' },
+      { status: 400 },
+    );
+  }
+  if (body.vocalGender !== undefined && !['m', 'f'].includes(body.vocalGender)) {
+    return NextResponse.json({ error: 'vocalGender must be m or f' }, { status: 400 });
+  }
+
   const req = {
     prompt,
-    instrumental: body.instrumental ?? true,
+    instrumental,
+    lyrics,
+    vocalGender: body.vocalGender as 'm' | 'f' | undefined,
     tempo: body.tempo,
     musicalKey: body.musicalKey,
     targetSeconds: body.targetSeconds,
