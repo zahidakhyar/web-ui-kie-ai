@@ -51,6 +51,7 @@ function freshDb() {
       status TEXT NOT NULL DEFAULT 'pending',
       r2_url TEXT,
       duration_seconds REAL,
+      stage TEXT,
       created_at INTEGER NOT NULL,
       completed_at INTEGER,
       error_msg TEXT

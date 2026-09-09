@@ -34,30 +34,44 @@ async function download(url: string, dest: string) {
   await writeFile(dest, Buffer.from(await res.arrayBuffer()));
 }
 
+type Stage = 'queued' | 'downloading' | 'clip' | 'boomerang' | 'muxing' | 'uploading';
+
+function setStage(renderId: string, stage: Stage) {
+  db.update(videoRenders)
+    .set({ stage })
+    .where(eq(videoRenders.renderId, renderId))
+    .run();
+}
+
 async function render(renderId: string, mixId: string, imageUrl: string) {
   const dir = await mkdtemp(path.join(tmpdir(), 'render-'));
   try {
     const mix = db.select().from(musicMixes).where(eq(musicMixes.mixId, mixId)).get();
     if (!mix?.r2Url) throw new Error('Mix is not ready');
 
+    setStage(renderId, 'downloading');
     const image = path.join(dir, 'bg.img');
     const audio = path.join(dir, 'mix.mp3');
     await download(imageUrl, image);
     await download(mix.r2Url, audio);
 
     // Filter once over CLIP_SECONDS, never over the full export.
+    setStage(renderId, 'clip');
     const clip = path.join(dir, 'clip.mp4');
     await runFfmpeg(buildClipArgs(image, clip));
 
+    setStage(renderId, 'boomerang');
     const boom = path.join(dir, 'boom.mp4');
     await runFfmpeg(buildBoomerangArgs(clip, boom));
 
+    setStage(renderId, 'muxing');
     const seconds = mix.actualSeconds ?? mix.targetSeconds;
     const out = path.join(dir, 'out.mp4');
     await runFfmpeg(
       buildLoopMuxArgs(boom, audio, loopsFor(seconds, BOOMERANG_SECONDS), out),
     );
 
+    setStage(renderId, 'uploading');
     const r2Url = await uploadBuffer(await readFile(out), renderKey(renderId), 'video/mp4');
 
     db.update(videoRenders)
@@ -87,7 +101,14 @@ export async function startRender(mixId: string, imageUrl: string): Promise<stri
   const renderId = randomUUID();
 
   db.insert(videoRenders)
-    .values({ renderId, mixId, imageUrl, status: 'running', createdAt: Date.now() })
+    .values({
+      renderId,
+      mixId,
+      imageUrl,
+      status: 'running',
+      stage: 'queued',
+      createdAt: Date.now(),
+    })
     .run();
 
   // Detached: a 1-hour export writes ~235 MB, far past any request timeout.

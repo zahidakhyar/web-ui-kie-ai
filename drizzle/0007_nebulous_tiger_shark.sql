@@ -1,0 +1,1 @@
+ALTER TABLE `video_renders` ADD `stage` text;
