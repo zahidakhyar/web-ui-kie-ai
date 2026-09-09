@@ -30,7 +30,11 @@ export const images = sqliteTable('images', {
   width: real('width'),
   height: real('height'),
   createdAt: integer('created_at').notNull(),
-});
+}, (table) => [
+  // The webhook and the orphan-recovery sweep can both land the same result.
+  // A read-then-write guard races; the constraint has to be here.
+  uniqueIndex('images_task_original_unique').on(table.taskId, table.originalUrl),
+]);
 
 export const uploads = sqliteTable('uploads', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -83,6 +87,21 @@ export const musicMixes = sqliteTable('music_mixes', {
     .notNull()
     .default('pending'),
   r2Url: text('r2_url'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});
+
+export const videoRenders = sqliteTable('video_renders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  renderId: text('render_id').notNull().unique(),
+  mixId: text('mix_id').notNull(),
+  imageUrl: text('image_url').notNull(),
+  status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  r2Url: text('r2_url'),
+  durationSeconds: real('duration_seconds'),
   createdAt: integer('created_at').notNull(),
   completedAt: integer('completed_at'),
   errorMsg: text('error_msg'),

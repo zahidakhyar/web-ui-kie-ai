@@ -43,6 +43,18 @@ function freshDb() {
       completed_at INTEGER,
       error_msg TEXT
     );
+    CREATE TABLE video_renders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      render_id TEXT NOT NULL UNIQUE,
+      mix_id TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      r2_url TEXT,
+      duration_seconds REAL,
+      created_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      error_msg TEXT
+    );
   `);
   return drizzle(sqlite, { schema });
 }
@@ -126,5 +138,22 @@ describe('music schema', () => {
     const all = db.select().from(schema.musicMixes).all();
     expect(all).toHaveLength(1);
     expect(all[0].r2Url).toBeNull();
+  });
+  it('stores a video render and rejects a duplicate render_id', () => {
+    const db = freshDb();
+    const row = {
+      renderId: 'r1',
+      mixId: 'm1',
+      imageUrl: 'https://r2/bg.webp',
+      status: 'running' as const,
+      createdAt: 1,
+    };
+    db.insert(schema.videoRenders).values(row).run();
+    expect(() => db.insert(schema.videoRenders).values(row).run()).toThrow(/UNIQUE/);
+
+    const all = db.select().from(schema.videoRenders).all();
+    expect(all).toHaveLength(1);
+    expect(all[0].r2Url).toBeNull();
+    expect(all[0].durationSeconds).toBeNull();
   });
 });
