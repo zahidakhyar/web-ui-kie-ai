@@ -3,8 +3,12 @@ import { generateMusic, generateSounds } from './client';
 export type AudioSourceId = 'sounds' | 'generate';
 
 export interface AudioSourceRequest {
+  /** The style description. In vocal mode this stays the style; `lyrics` carries the words. */
   prompt: string;
   instrumental: boolean;
+  /** Required when instrumental is false. Suno sings it verbatim. */
+  lyrics?: string;
+  vocalGender?: 'm' | 'f';
   tempo?: number;
   musicalKey?: string;
   /** Desired seconds for one unit. Only `generate` honours it, and only up to 360. */
@@ -25,28 +29,40 @@ const TITLE_MAX = 80;
 const soundsSource: AudioSource = {
   id: 'sounds',
   label: 'Sounds loop (~21s, proven)',
-  start: ({ prompt, tempo, musicalKey }) =>
-    generateSounds({
+  start: async ({ prompt, instrumental, tempo, musicalKey }) => {
+    // The sounds endpoint has no instrumental or vocalGender field at all, so
+    // vocals are impossible on this path rather than merely unsupported.
+    if (!instrumental) {
+      throw new Error('The 21-second loop endpoint cannot generate vocals.');
+    }
+    return generateSounds({
       prompt,
       model: 'V5',
       soundLoop: true,
       ...(tempo !== undefined ? { soundTempo: tempo } : {}),
       ...(musicalKey !== undefined ? { soundKey: musicalKey } : {}),
-    }),
+    });
+  },
 };
 
 const generateSource: AudioSource = {
   id: 'generate',
   label: 'Full track (longer, currently unreliable)',
-  start: ({ prompt, instrumental, targetSeconds }) => {
+  start: async ({ prompt, instrumental, lyrics, vocalGender, targetSeconds }) => {
+    if (!instrumental && !lyrics?.trim()) {
+      throw new Error('Lyrics are required when the track is not instrumental.');
+    }
     const title = prompt.slice(0, TITLE_MAX);
     return generateMusic({
-      prompt,
+      // In custom mode Suno sings `prompt` verbatim, so the lyrics go there and
+      // the style description moves to `style`.
+      prompt: instrumental ? prompt : lyrics!.trim(),
       model: 'V5_5',
       customMode: true,
       instrumental,
       style: prompt,
       title,
+      ...(vocalGender ? { vocalGender } : {}),
       ...(targetSeconds !== undefined
         ? { duration: Math.min(MAX_DURATION, Math.max(MIN_DURATION, targetSeconds)) }
         : {}),
