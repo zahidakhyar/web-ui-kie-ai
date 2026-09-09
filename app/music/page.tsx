@@ -154,12 +154,18 @@ export default function MusicPage() {
       <Stage
         index={2}
         title="Build a long mix"
-        hint="Selected loops are crossfaded on repeat until the length is filled."
+        hint="Selected tracks are crossfaded on repeat until the length is filled."
         locked={tracks.length === 0}
         done={readyMixes.length > 0}
       >
         <div className="flex flex-col gap-6">
-          <MixControls selected={selected} onMixStarted={setMixId} />
+          <MixControls
+            selected={selected}
+            selectedDurations={selected
+              .map((id) => tracks.find((t) => t.id === id)?.durationSec)
+              .filter((d): d is number => d !== undefined)}
+            onMixStarted={setMixId}
+          />
           {mixId && (
             <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
