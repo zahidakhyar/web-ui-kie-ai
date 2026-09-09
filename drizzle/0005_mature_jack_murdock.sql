@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `images_task_original_unique` ON `images` (`task_id`,`original_url`);

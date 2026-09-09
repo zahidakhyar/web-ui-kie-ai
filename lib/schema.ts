@@ -30,7 +30,11 @@ export const images = sqliteTable('images', {
   width: real('width'),
   height: real('height'),
   createdAt: integer('created_at').notNull(),
-});
+}, (table) => [
+  // The webhook and the orphan-recovery sweep can both land the same result.
+  // A read-then-write guard races; the constraint has to be here.
+  uniqueIndex('images_task_original_unique').on(table.taskId, table.originalUrl),
+]);
 
 export const uploads = sqliteTable('uploads', {
   id: integer('id').primaryKey({ autoIncrement: true }),

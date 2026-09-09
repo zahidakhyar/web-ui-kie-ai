@@ -1,11 +1,15 @@
 import { db } from '@/lib/db';
 import { deleteImage } from '@/lib/r2';
+import { syncPendingImageTasks } from '@/lib/images/sync';
 import { images, tasks } from '@/lib/schema';
 import { and, desc, asc, eq, inArray, like, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
+    // Recovers tasks whose webhook never arrived (see lib/images/sync.ts).
+    await syncPendingImageTasks();
+
     const { searchParams } = request.nextUrl;
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
     const limit = Math.min(50, parseInt(searchParams.get('limit') ?? '24', 10));
