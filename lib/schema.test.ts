@@ -29,6 +29,8 @@ function freshDb() {
       cover_r2_url TEXT,
       created_at INTEGER NOT NULL
     );
+    CREATE UNIQUE INDEX music_tracks_task_audio_unique
+      ON music_tracks (task_id, audio_id);
   `);
   return drizzle(sqlite, { schema });
 }
@@ -70,5 +72,31 @@ describe('music schema', () => {
     expect(tracks).toHaveLength(2);
     expect(tracks[0].durationSec).toBeCloseTo(20.76);
     expect(tracks[0].coverR2Url).toBeNull();
+  });
+
+  it('refuses a duplicate (task_id, audio_id) so concurrent syncs cannot double-insert', () => {
+    const db = freshDb();
+    db.insert(schema.musicTasks)
+      .values({ taskId: 't1', source: 'sounds', prompt: 'lofi', params: '{}', createdAt: 1 })
+      .run();
+
+    const row = {
+      taskId: 't1',
+      audioId: 'a1',
+      title: 'Lofi',
+      durationSec: 20.76,
+      audioR2Url: 'https://r2/a1.mp3',
+      audioOriginalUrl: 'https://suno/a1.mp3',
+      createdAt: 1,
+    };
+
+    db.insert(schema.musicTracks).values(row).run();
+    expect(() => db.insert(schema.musicTracks).values(row).run()).toThrow(/UNIQUE/);
+
+    // onConflictDoNothing is what sync.ts uses: it must swallow the collision.
+    db.insert(schema.musicTracks).values(row).onConflictDoNothing().run();
+
+    const all = db.select().from(schema.musicTracks).all();
+    expect(all).toHaveLength(1);
   });
 });

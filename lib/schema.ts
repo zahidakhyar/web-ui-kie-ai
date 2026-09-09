@@ -1,4 +1,10 @@
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  integer,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 export const tasks = sqliteTable('tasks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -61,4 +67,8 @@ export const musicTracks = sqliteTable('music_tracks', {
   audioOriginalUrl: text('audio_original_url').notNull(),
   coverR2Url: text('cover_r2_url'),
   createdAt: integer('created_at').notNull(),
-});
+}, (table) => [
+  // Two concurrent syncs of the same task must not both insert. The DB is the
+  // only place this can be enforced; a read-then-write guard races.
+  uniqueIndex('music_tracks_task_audio_unique').on(table.taskId, table.audioId),
+]);
