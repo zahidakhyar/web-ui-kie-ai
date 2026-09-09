@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `music_tracks_task_audio_unique` ON `music_tracks` (`task_id`,`audio_id`);

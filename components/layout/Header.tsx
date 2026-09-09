@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Coins, Images, Moon, Sparkles, Sun, Wand2 } from 'lucide-react';
+import { Coins, Images, Moon, Music, Sparkles, Sun, Wand2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ import useSWR from 'swr';
 const NAV = [
   { href: '/', label: 'Generate', icon: Wand2 },
   { href: '/upscale', label: 'Upscale', icon: Sparkles },
+  { href: '/music', label: 'Music', icon: Music },
   { href: '/gallery', label: 'Gallery', icon: Images },
 ];
 

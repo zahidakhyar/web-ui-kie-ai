@@ -15,6 +15,20 @@
       "when": 1776200000000,
       "tag": "0001_add_uploads_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788963682959,
+      "tag": "0002_petite_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788964353844,
+      "tag": "0003_known_human_cannonball",
+      "breakpoints": true
     }
   ]
 }
