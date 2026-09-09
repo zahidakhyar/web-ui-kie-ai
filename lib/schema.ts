@@ -104,6 +104,8 @@ export const videoRenders = sqliteTable('video_renders', {
   durationSeconds: real('duration_seconds'),
   /** Which ffmpeg step is running, so the UI can report more than a spinner. */
   stage: text('stage', {
+    // 'boomerang' is retired but kept so rows written before the
+    // single-pass pan still read back.
     enum: ['queued', 'downloading', 'clip', 'boomerang', 'muxing', 'uploading'],
   }),
   createdAt: integer('created_at').notNull(),

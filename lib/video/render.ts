@@ -7,16 +7,7 @@ import { runFfmpeg } from '@/lib/audio/ffmpeg';
 import { db } from '@/lib/db';
 import { uploadBuffer } from '@/lib/r2';
 import { musicMixes, videoRenders } from '@/lib/schema';
-import {
-  CLIP_SECONDS,
-  buildBoomerangArgs,
-  buildClipArgs,
-  buildLoopMuxArgs,
-  loopsFor,
-} from './clip';
-
-/** Forward + reverse, so the loop unit is twice the clip. */
-const BOOMERANG_SECONDS = CLIP_SECONDS * 2;
+import { LOOP_SECONDS, buildClipArgs, buildLoopMuxArgs, loopsFor } from './clip';
 
 export function renderKey(renderId: string): string {
   return `videos/${new Date().toISOString().slice(0, 10)}/${renderId}.mp4`;
@@ -34,7 +25,7 @@ async function download(url: string, dest: string) {
   await writeFile(dest, Buffer.from(await res.arrayBuffer()));
 }
 
-type Stage = 'queued' | 'downloading' | 'clip' | 'boomerang' | 'muxing' | 'uploading';
+type Stage = 'queued' | 'downloading' | 'clip' | 'muxing' | 'uploading';
 
 function setStage(renderId: string, stage: Stage) {
   db.update(videoRenders)
@@ -55,21 +46,15 @@ async function render(renderId: string, mixId: string, imageUrl: string) {
     await download(imageUrl, image);
     await download(mix.r2Url, audio);
 
-    // Filter once over CLIP_SECONDS, never over the full export.
+    // Filter once over LOOP_SECONDS, never over the full export.
     setStage(renderId, 'clip');
     const clip = path.join(dir, 'clip.mp4');
     await runFfmpeg(buildClipArgs(image, clip));
 
-    setStage(renderId, 'boomerang');
-    const boom = path.join(dir, 'boom.mp4');
-    await runFfmpeg(buildBoomerangArgs(clip, boom));
-
     setStage(renderId, 'muxing');
     const seconds = mix.actualSeconds ?? mix.targetSeconds;
     const out = path.join(dir, 'out.mp4');
-    await runFfmpeg(
-      buildLoopMuxArgs(boom, audio, loopsFor(seconds, BOOMERANG_SECONDS), out),
-    );
+    await runFfmpeg(buildLoopMuxArgs(clip, audio, loopsFor(seconds, LOOP_SECONDS), out));
 
     setStage(renderId, 'uploading');
     const r2Url = await uploadBuffer(await readFile(out), renderKey(renderId), 'video/mp4');

@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CLIP_SECONDS,
-  buildBoomerangArgs,
-  buildClipArgs,
-  buildLoopMuxArgs,
-  loopsFor,
-} from './clip';
+import { LOOP_SECONDS, buildClipArgs, buildLoopMuxArgs, loopsFor } from './clip';
 
 describe('buildClipArgs', () => {
   it('pans with scale+crop and never uses zoompan', () => {
@@ -18,18 +12,22 @@ describe('buildClipArgs', () => {
     expect(args.at(-1)).toBe('/tmp/clip.mp4');
   });
 
-  it('renders exactly CLIP_SECONDS of video', () => {
+  it('renders exactly LOOP_SECONDS of video', () => {
     const args = buildClipArgs('/tmp/bg.jpg', '/tmp/clip.mp4');
-    expect(args[args.indexOf('-t') + 1]).toBe(String(CLIP_SECONDS));
+    expect(args[args.indexOf('-t') + 1]).toBe(String(LOOP_SECONDS));
   });
-});
 
-describe('buildBoomerangArgs', () => {
-  it('concatenates the clip with its reverse', () => {
-    const args = buildBoomerangArgs('/tmp/clip.mp4', '/tmp/boom.mp4');
-    const graph = args[args.indexOf('-filter_complex') + 1];
-    expect(graph).toContain('reverse');
-    expect(graph).toContain('concat=n=2');
+  it('pans out and back so the clip loops without a reverse pass', () => {
+    const vf = buildClipArgs('/tmp/bg.jpg', '/tmp/clip.mp4')[
+      buildClipArgs('/tmp/bg.jpg', '/tmp/clip.mp4').indexOf('-vf') + 1
+    ];
+    // Triangle wave: 1 - |1 - t/half|, which is 0 at t=0 and again at t=LOOP_SECONDS.
+    expect(vf).toContain(`1-abs(1-t/${LOOP_SECONDS / 2})`);
+  });
+
+  it('never reverses, which would buffer every frame', () => {
+    const args = buildClipArgs('/tmp/bg.jpg', '/tmp/clip.mp4');
+    expect(args.join(' ')).not.toContain('reverse');
   });
 });
 
