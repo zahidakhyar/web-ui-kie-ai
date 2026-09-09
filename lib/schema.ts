@@ -91,3 +91,18 @@ export const musicMixes = sqliteTable('music_mixes', {
   completedAt: integer('completed_at'),
   errorMsg: text('error_msg'),
 });
+
+export const videoRenders = sqliteTable('video_renders', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  renderId: text('render_id').notNull().unique(),
+  mixId: text('mix_id').notNull(),
+  imageUrl: text('image_url').notNull(),
+  status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  r2Url: text('r2_url'),
+  durationSeconds: real('duration_seconds'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});
