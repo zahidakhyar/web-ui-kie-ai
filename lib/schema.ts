@@ -34,3 +34,31 @@ export const uploads = sqliteTable('uploads', {
   fileSize: integer('file_size').notNull(),
   createdAt: integer('created_at').notNull(),
 });
+
+export const musicTasks = sqliteTable('music_tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  taskId: text('task_id').notNull().unique(),
+  source: text('source', { enum: ['sounds', 'generate'] }).notNull(),
+  prompt: text('prompt').notNull(),
+  params: text('params').notNull(), // JSON string of the AudioSourceRequest
+  status: text('status', { enum: ['pending', 'waiting', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});
+
+export const musicTracks = sqliteTable('music_tracks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  taskId: text('task_id')
+    .notNull()
+    .references(() => musicTasks.taskId),
+  audioId: text('audio_id').notNull(), // Suno's per-variation id
+  title: text('title').notNull(),
+  durationSec: real('duration_sec').notNull(),
+  audioR2Url: text('audio_r2_url').notNull(),
+  audioOriginalUrl: text('audio_original_url').notNull(),
+  coverR2Url: text('cover_r2_url'),
+  createdAt: integer('created_at').notNull(),
+});
