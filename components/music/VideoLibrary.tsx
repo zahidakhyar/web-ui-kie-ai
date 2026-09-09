@@ -58,7 +58,7 @@ export function VideoLibrary() {
   return (
     <ul className="flex flex-col gap-3">
       {videos.map((video) => (
-        <li key={video.id} className="flex flex-col gap-2 rounded-lg border p-3">
+        <li key={video.id} className="flex flex-col gap-3 rounded-xl border p-3">
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-medium">
               {video.durationSeconds ? formatLength(video.durationSeconds) : 'pending'}
@@ -77,7 +77,7 @@ export function VideoLibrary() {
               <a
                 href={video.r2Url}
                 download
-                className="self-start text-xs text-muted-foreground underline"
+                className="self-start text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
               >
                 Download MP4
               </a>

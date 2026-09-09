@@ -102,6 +102,10 @@ export const videoRenders = sqliteTable('video_renders', {
     .default('pending'),
   r2Url: text('r2_url'),
   durationSeconds: real('duration_seconds'),
+  /** Which ffmpeg step is running, so the UI can report more than a spinner. */
+  stage: text('stage', {
+    enum: ['queued', 'downloading', 'clip', 'boomerang', 'muxing', 'uploading'],
+  }),
   createdAt: integer('created_at').notNull(),
   completedAt: integer('completed_at'),
   errorMsg: text('error_msg'),

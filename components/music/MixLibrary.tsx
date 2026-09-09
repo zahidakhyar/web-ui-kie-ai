@@ -10,6 +10,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AudioButton } from './AudioButton';
 
 export interface MixDto {
   id: number;
@@ -55,7 +56,7 @@ export function MixLibrary() {
   return (
     <ul className="flex flex-col gap-3">
       {mixes.map((mix) => (
-        <li key={mix.id} className="flex flex-col gap-2 rounded-lg border p-3">
+        <li key={mix.id} className="flex flex-col gap-3 rounded-xl border p-3">
           <div className="flex items-baseline gap-2">
             <span className="text-sm font-medium">
               {formatLength(mix.actualSeconds ?? mix.targetSeconds)}
@@ -70,11 +71,14 @@ export function MixLibrary() {
           </div>
           {mix.r2Url && (
             <>
-              <audio src={mix.r2Url} controls className="w-full" />
+              <AudioButton
+                src={mix.r2Url}
+                label={`${formatLength(mix.actualSeconds ?? mix.targetSeconds)} mix`}
+              />
               <a
                 href={mix.r2Url}
                 download
-                className="self-start text-xs text-muted-foreground underline"
+                className="self-start text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
               >
                 Download MP3
               </a>
