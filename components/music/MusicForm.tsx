@@ -16,6 +16,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { GENRE_PRESETS, getPreset } from '@/lib/music/presets';
+import { SUNO_LIMITS, styleLimit } from '@/lib/suno/limits';
 import { cn } from '@/lib/utils';
 
 /**
@@ -58,6 +59,9 @@ export function MusicForm({
   const [errors, setErrors] = useState<{ prompt?: string; lyrics?: string }>({});
 
   const isLoop = length === 'loop';
+  // The loop endpoint has a single 500-character prompt; /generate gives style
+  // its own 1000-character field, so the cap moves with the length choice.
+  const maxStyle = styleLimit(isLoop);
 
   /** Vocals only exist on /generate; the loop endpoint has no vocal fields. */
   function toggleInstrumental(next: boolean) {
@@ -84,6 +88,11 @@ export function MusicForm({
 
     const next: typeof errors = {};
     if (!prompt.trim()) next.prompt = 'Describe the style you want.';
+    // maxLength does not shorten text already typed, so switching from a
+    // 6-minute track to a 21-second loop can leave the style over the cap.
+    else if (prompt.length > maxStyle) {
+      next.prompt = `Loops allow ${maxStyle} characters. Shorten by ${prompt.length - maxStyle}.`;
+    }
     if (!instrumental && !lyrics.trim()) next.lyrics = 'Vocal tracks need lyrics to sing.';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -160,7 +169,11 @@ export function MusicForm({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
-          maxLength={500}
+          maxLength={maxStyle}
+          // The base Textarea sets field-sizing-content, so it grows with the
+          // text and pushes the page. A fixed height overrides that; long text
+          // scrolls inside the box instead.
+          className="h-24 resize-none overflow-y-auto"
           aria-invalid={!!errors.prompt}
           aria-describedby={errors.prompt ? 'music-prompt-error' : 'music-prompt-help'}
         />
@@ -170,7 +183,8 @@ export function MusicForm({
           </p>
         ) : (
           <p id="music-prompt-help" className="text-xs text-muted-foreground">
-            Genre, instruments, mood and tempo. Max 500 characters.
+            Genre, instruments, mood and tempo. {prompt.length} of {maxStyle}
+            {isLoop ? ' characters (loops allow fewer).' : ' characters.'}
           </p>
         )}
       </div>
@@ -202,6 +216,8 @@ export function MusicForm({
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               rows={6}
+              maxLength={SUNO_LIMITS.generateLyrics}
+              className="h-56 resize-none overflow-y-auto"
               aria-invalid={!!errors.lyrics}
               aria-describedby={errors.lyrics ? 'music-lyrics-error' : 'music-lyrics-help'}
             />
@@ -211,7 +227,8 @@ export function MusicForm({
               </p>
             ) : (
               <p id="music-lyrics-help" className="text-xs text-muted-foreground">
-                Sung verbatim. Use blank lines between sections.
+                Sung verbatim. Use blank lines between sections. {lyrics.length} of{' '}
+                {SUNO_LIMITS.generateLyrics} characters.
               </p>
             )}
           </div>
