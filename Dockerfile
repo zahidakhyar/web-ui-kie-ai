@@ -35,6 +35,9 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 
+# ffmpeg assembles the long-form audio mixes; alpine ships no media tooling.
+RUN apk add --no-cache ffmpeg
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
