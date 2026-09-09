@@ -72,3 +72,18 @@ export const musicTracks = sqliteTable('music_tracks', {
   // only place this can be enforced; a read-then-write guard races.
   uniqueIndex('music_tracks_task_audio_unique').on(table.taskId, table.audioId),
 ]);
+
+export const musicMixes = sqliteTable('music_mixes', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  mixId: text('mix_id').notNull().unique(),
+  trackIds: text('track_ids').notNull(), // JSON array of musicTracks.id
+  targetSeconds: integer('target_seconds').notNull(),
+  actualSeconds: real('actual_seconds'),
+  status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  r2Url: text('r2_url'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});

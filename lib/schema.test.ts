@@ -31,6 +31,18 @@ function freshDb() {
     );
     CREATE UNIQUE INDEX music_tracks_task_audio_unique
       ON music_tracks (task_id, audio_id);
+    CREATE TABLE music_mixes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mix_id TEXT NOT NULL UNIQUE,
+      track_ids TEXT NOT NULL,
+      target_seconds INTEGER NOT NULL,
+      actual_seconds REAL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      r2_url TEXT,
+      created_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      error_msg TEXT
+    );
   `);
   return drizzle(sqlite, { schema });
 }
@@ -98,5 +110,21 @@ describe('music schema', () => {
 
     const all = db.select().from(schema.musicTracks).all();
     expect(all).toHaveLength(1);
+  });
+  it('stores a mix and rejects a duplicate mix_id', () => {
+    const db = freshDb();
+    const row = {
+      mixId: 'm1',
+      trackIds: '[1,2]',
+      targetSeconds: 3600,
+      status: 'pending' as const,
+      createdAt: 1,
+    };
+    db.insert(schema.musicMixes).values(row).run();
+    expect(() => db.insert(schema.musicMixes).values(row).run()).toThrow(/UNIQUE/);
+
+    const all = db.select().from(schema.musicMixes).all();
+    expect(all).toHaveLength(1);
+    expect(all[0].r2Url).toBeNull();
   });
 });
