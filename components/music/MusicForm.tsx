@@ -14,9 +14,8 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { GENRE_PRESETS, getPreset } from '@/lib/music/presets';
 
-const DEFAULT_PROMPT =
-  'lofi hip hop, warm vinyl crackle, mellow rhodes piano, soft boom-bap drums, rainy night';
 
 /**
  * One control picks both the endpoint and the length, so there is no invalid
@@ -40,10 +39,22 @@ export function MusicForm({
   onTaskCreated: (taskId: string) => void;
   disabled: boolean;
 }) {
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
-  const [tempo, setTempo] = useState('75');
+  const [presetId, setPresetId] = useState(GENRE_PRESETS[0].id);
+  const [prompt, setPrompt] = useState(GENRE_PRESETS[0].prompt);
+  const [tempo, setTempo] = useState(String(GENRE_PRESETS[0].tempo));
+  const [musicalKey, setMusicalKey] = useState(GENRE_PRESETS[0].musicalKey ?? '');
   const [length, setLength] = useState('loop');
   const [submitting, setSubmitting] = useState(false);
+
+  /** Picking a genre rewrites the prompt, tempo and key; all stay editable after. */
+  function applyPreset(id: string) {
+    setPresetId(id);
+    const preset = getPreset(id);
+    if (!preset) return;
+    setPrompt(preset.prompt);
+    setTempo(String(preset.tempo));
+    setMusicalKey(preset.musicalKey ?? '');
+  }
 
   const isLoop = length === 'loop';
   const note = LENGTHS.find((l) => l.value === length)?.note;
@@ -59,7 +70,11 @@ export function MusicForm({
           prompt,
           instrumental: true,
           ...(isLoop
-            ? { source: 'sounds', tempo: tempo ? Number(tempo) : undefined }
+            ? {
+                source: 'sounds',
+                tempo: tempo ? Number(tempo) : undefined,
+                musicalKey: musicalKey || undefined,
+              }
             : { source: 'generate', targetSeconds: Number(length) }),
         }),
       });
@@ -78,6 +93,25 @@ export function MusicForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
+        <Label htmlFor="music-genre">Genre</Label>
+        <Select value={presetId} onValueChange={(v) => v !== null && applyPreset(v)}>
+          <SelectTrigger id="music-genre" className="w-52">
+            {/* Base UI renders the raw value by default. */}
+            <SelectValue>
+              {(value: string) => getPreset(value)?.label ?? value}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {GENRE_PRESETS.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="music-prompt">Prompt</Label>
         <Textarea
           id="music-prompt"
@@ -87,7 +121,9 @@ export function MusicForm({
           maxLength={500}
           required
         />
-        <p className="text-xs text-muted-foreground">Max 500 characters. Instrumental.</p>
+        <p className="text-xs text-muted-foreground">
+          Max 500 characters. Edit freely; the genre only fills it in.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
@@ -112,20 +148,32 @@ export function MusicForm({
           </Select>
         </div>
 
-        {/* Tempo and key only exist on the loop endpoint. */}
+        {/* Tempo and key only exist on the loop endpoint; /generate reads BPM from the prompt. */}
         {isLoop && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="music-tempo">Tempo (BPM)</Label>
-            <Input
-              id="music-tempo"
-              type="number"
-              value={tempo}
-              onChange={(e) => setTempo(e.target.value)}
-              min={1}
-              max={300}
-              className="w-32"
-            />
-          </div>
+          <>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="music-tempo">Tempo (BPM)</Label>
+              <Input
+                id="music-tempo"
+                type="number"
+                value={tempo}
+                onChange={(e) => setTempo(e.target.value)}
+                min={1}
+                max={300}
+                className="w-28"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="music-key">Key</Label>
+              <Input
+                id="music-key"
+                value={musicalKey}
+                onChange={(e) => setMusicalKey(e.target.value)}
+                placeholder="Am"
+                className="w-24"
+              />
+            </div>
+          </>
         )}
 
         <Button type="submit" disabled={busy}>
