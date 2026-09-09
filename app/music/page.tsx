@@ -4,6 +4,9 @@ import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
 import { MixBuilder } from '@/components/music/MixBuilder';
+import { VideoBuilder } from '@/components/music/VideoBuilder';
+import { VideoLibrary } from '@/components/music/VideoLibrary';
+import type { VideoDto } from '@/components/music/VideoLibrary';
 import { MixLibrary } from '@/components/music/MixLibrary';
 import { MusicForm } from '@/components/music/MusicForm';
 import { TrackLibrary } from '@/components/music/TrackLibrary';
@@ -22,6 +25,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function MusicPage() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [mixId, setMixId] = useState<string | null>(null);
+  const [renderId, setRenderId] = useState<string | null>(null);
 
   // SWR owns the polling loop and its teardown; no manual interval to clean up.
   useSWR<TaskState>(taskId ? `/api/music/task/${taskId}` : null, fetcher, {
@@ -70,6 +74,30 @@ export default function MusicPage() {
     },
   );
 
+  useSWR<{ status: VideoDto['status']; errorMsg: string | null }>(
+    renderId ? `/api/music/video/${renderId}` : null,
+    fetcher,
+    {
+      refreshInterval: POLL_MS,
+      refreshWhenHidden: true,
+      revalidateOnFocus: false,
+      onSuccess: (render) => {
+        if (render.status === 'success') {
+          setRenderId(null);
+          toast.success('Video ready');
+          mutate('/api/music/videos');
+        } else if (render.status === 'fail') {
+          setRenderId(null);
+          toast.error(render.errorMsg ?? 'Render failed');
+        }
+      },
+      onError: (error: Error) => {
+        setRenderId(null);
+        toast.error(error.message || 'Lost contact with the render job');
+      },
+    },
+  );
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-6">
       <header className="flex flex-col gap-1">
@@ -107,6 +135,22 @@ export default function MusicPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-medium">Mixes</h2>
         <MixLibrary />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Render a music video</h2>
+        <VideoBuilder onRenderStarted={setRenderId} />
+        {renderId && (
+          <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Spinner />
+            Rendering the video…
+          </p>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Videos</h2>
+        <VideoLibrary />
       </section>
     </main>
   );
