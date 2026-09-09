@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -14,6 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
 import type { MusicTrackDto } from './TrackPlayer';
 
 const PRESETS = [
@@ -41,8 +41,15 @@ function estimate(targetSeconds: number) {
   };
 }
 
-export function MixBuilder({ onMixStarted }: { onMixStarted: (mixId: string) => void }) {
-  const { data } = useSWR<{ tracks: MusicTrackDto[] }>('/api/music/library', fetcher);
+export function MixBuilder({
+  onMixStarted,
+}: {
+  onMixStarted: (mixId: string) => void;
+}) {
+  const { data } = useSWR<{ tracks: MusicTrackDto[] }>(
+    '/api/music/library',
+    fetcher,
+  );
   const [selected, setSelected] = useState<number[]>([]);
   const [target, setTarget] = useState('300');
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +58,9 @@ export function MixBuilder({ onMixStarted }: { onMixStarted: (mixId: string) => 
   const { megabytes, seconds } = estimate(Number(target));
 
   function toggle(id: number, checked: boolean) {
-    setSelected((prev) => (checked ? [...prev, id] : prev.filter((x) => x !== id)));
+    setSelected((prev) =>
+      checked ? [...prev, id] : prev.filter((x) => x !== id),
+    );
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -61,13 +70,18 @@ export function MixBuilder({ onMixStarted }: { onMixStarted: (mixId: string) => 
       const res = await fetch('/api/music/mix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds: selected, targetSeconds: Number(target) }),
+        body: JSON.stringify({
+          trackIds: selected,
+          targetSeconds: Number(target),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Mix failed to start');
       onMixStarted(json.mixId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Mix failed to start');
+      toast.error(
+        error instanceof Error ? error.message : 'Mix failed to start',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -108,11 +122,16 @@ export function MixBuilder({ onMixStarted }: { onMixStarted: (mixId: string) => 
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="mix-length">Length</Label>
-        <Select value={target} onValueChange={(v) => v !== null && setTarget(v)}>
+        <Select
+          value={target}
+          onValueChange={(v) => v !== null && setTarget(v)}
+        >
           <SelectTrigger id="mix-length" className="w-48">
             {/* Base UI renders the raw value by default; the value here is seconds. */}
             <SelectValue>
-              {(value: string) => PRESETS.find((p) => p.value === value)?.label ?? value}
+              {(value: string) =>
+                PRESETS.find((p) => p.value === value)?.label ?? value
+              }
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
