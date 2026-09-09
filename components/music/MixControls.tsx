@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { planMix } from '@/lib/audio/plan';
 
 const PRESETS = [
   { value: '300', label: '5 minutes' },
@@ -20,32 +21,51 @@ const PRESETS = [
   { value: '3600', label: '1 hour' },
 ];
 
-/**
- * Measured on an M1: a 192-stage chain (one hour) took 69s and produced 83 MB.
- * Render time grows superlinearly with chain length, so scale from that point.
- */
-const HOUR_SECONDS = 3600;
-const HOUR_RENDER_SECONDS = 70;
-const HOUR_MEGABYTES = 83;
+/** 192 kbps MP3 is 24 KB per second, so size depends only on length. */
+const KB_PER_SECOND = 24;
 
-function estimate(targetSeconds: number) {
-  const ratio = targetSeconds / HOUR_SECONDS;
-  return {
-    megabytes: Math.round(HOUR_MEGABYTES * ratio),
-    seconds: Math.max(5, Math.round(HOUR_RENDER_SECONDS * ratio)),
-  };
+/**
+ * Render time depends on chain length, not output length: measured 12.8s at 60
+ * acrossfade stages and 69.2s at 192, which fits t = 12.8 * (n/60)^1.45.
+ * Six-minute tracks need ~10 stages for an hour where 21s loops need ~192, so
+ * the estimate has to come from the selected durations, not the target alone.
+ */
+const REF_STAGES = 60;
+const REF_SECONDS = 12.8;
+const GROWTH = 1.45;
+
+function estimate(targetSeconds: number, durations: number[]) {
+  const megabytes = Math.round((targetSeconds * KB_PER_SECOND) / 1024);
+  if (durations.length === 0) return { megabytes, seconds: 0, crossfades: 0 };
+
+  // Same arithmetic the renderer uses, so the estimate cannot drift from it.
+  const inputs = planMix(
+    durations.map((_, i) => String(i)),
+    durations,
+    targetSeconds,
+  ).inputs.length;
+
+  // A chain of n inputs has n-1 seams; one input needs no crossfade at all.
+  const crossfades = Math.max(0, inputs - 1);
+  const seconds = Math.max(
+    3,
+    Math.round(REF_SECONDS * (inputs / REF_STAGES) ** GROWTH),
+  );
+  return { megabytes, seconds, crossfades };
 }
 
 export function MixControls({
   selected,
+  selectedDurations,
   onMixStarted,
 }: {
   selected: number[];
+  selectedDurations: number[];
   onMixStarted: (mixId: string) => void;
 }) {
   const [target, setTarget] = useState('300');
   const [submitting, setSubmitting] = useState(false);
-  const { megabytes, seconds } = estimate(Number(target));
+  const { megabytes, seconds, crossfades } = estimate(Number(target), selectedDurations);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -94,8 +114,8 @@ export function MixControls({
 
       <p className="text-xs text-muted-foreground">
         {selected.length === 0
-          ? 'Select at least one loop above.'
-          : `${selected.length} selected · roughly ${megabytes} MB, about ${seconds}s to render.`}
+          ? 'Select at least one track above.'
+          : `${selected.length} selected · ${crossfades} crossfade${crossfades === 1 ? '' : 's'} · roughly ${megabytes} MB, about ${seconds}s to render.`}
       </p>
     </form>
   );
