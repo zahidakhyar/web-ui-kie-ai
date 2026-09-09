@@ -161,6 +161,10 @@ export function MusicForm({
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
           maxLength={500}
+          // The base Textarea sets field-sizing-content, so it grows with the
+          // text and pushes the page. A fixed height overrides that; long text
+          // scrolls inside the box instead.
+          className="h-24 resize-none overflow-y-auto"
           aria-invalid={!!errors.prompt}
           aria-describedby={errors.prompt ? 'music-prompt-error' : 'music-prompt-help'}
         />
@@ -202,6 +206,7 @@ export function MusicForm({
               value={lyrics}
               onChange={(e) => setLyrics(e.target.value)}
               rows={6}
+              className="h-56 resize-none overflow-y-auto"
               aria-invalid={!!errors.lyrics}
               aria-describedby={errors.lyrics ? 'music-lyrics-error' : 'music-lyrics-help'}
             />
