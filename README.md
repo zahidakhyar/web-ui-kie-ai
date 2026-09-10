@@ -105,7 +105,7 @@ npm run build && npm start  # production
 npm test          # unit tests (Vitest)
 ```
 
-> **Deploying:** video rendering peaks around 400 MB of RAM on top of the app itself, so give the container at least 2 GB. A container killed mid-render reports the signal that stopped ffmpeg (usually `SIGKILL` = out of memory).
+> **Deploying:** give the container at least 2 GB. A still-image render peaks around 400 MB of RAM on top of the app itself, but chaining AI clips costs more, and it grows with the number of clips: measured 646 MB at one, 876 at two, 1057 at three and 1099 at four, on a machine that runs about 1.4x the container. Four is the cap for that reason. A container killed mid-render reports the signal that stopped ffmpeg (usually `SIGKILL` = out of memory).
 
 ## Adding New Models
 
