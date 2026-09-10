@@ -12,11 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MAX_CLIPS, loopSecondsFor } from '@/lib/video/loop';
+import { ClipRow } from './ClipRow';
 import type { MixDto } from './MixLibrary';
 
 /**
@@ -32,6 +32,7 @@ export interface ClipDto {
   status: 'pending' | 'running' | 'success' | 'fail';
   stage: string | null;
   sourceSeconds: number | null;
+  r2Url: string | null;
   errorMsg: string | null;
 }
 
@@ -230,26 +231,14 @@ export function VideoBuilder({
                 <ul className="flex flex-col gap-2">
                   {clips.map((c) => {
                     const order = clipIds.indexOf(c.clipId);
-                    const atLimit = order === -1 && clipIds.length >= MAX_CLIPS;
                     return (
-                      <li key={c.clipId} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`clip-${c.clipId}`}
-                          checked={order !== -1}
-                          disabled={atLimit}
-                          onCheckedChange={(next) => toggleClip(c.clipId, next === true)}
-                        />
-                        <Label
-                          htmlFor={`clip-${c.clipId}`}
-                          className="truncate font-normal text-muted-foreground data-[picked=true]:text-foreground"
-                          data-picked={order !== -1}
-                        >
-                          {order !== -1 && (
-                            <span className="tabular-nums">{order + 1}.</span>
-                          )}
-                          {c.prompt.slice(0, 60)}
-                        </Label>
-                      </li>
+                      <ClipRow
+                        key={c.clipId}
+                        clip={c}
+                        order={order}
+                        disabled={order === -1 && clipIds.length >= MAX_CLIPS}
+                        onToggle={(next) => toggleClip(c.clipId, next)}
+                      />
                     );
                   })}
                 </ul>
