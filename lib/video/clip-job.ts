@@ -7,7 +7,7 @@ import { runFfmpeg } from '@/lib/audio/ffmpeg';
 import { db } from '@/lib/db';
 import { uploadFile } from '@/lib/r2';
 import { videoClips } from '@/lib/schema';
-import { buildLoopArgs } from './loop';
+import { buildNormalizeArgs } from './loop';
 import { probeSeconds } from './probe';
 import {
   VEO_MODEL,
@@ -21,7 +21,7 @@ const POLL_MS = 5000;
 /** Measured 54s for the clip and ~35s for the upgrade; this is a wide margin. */
 const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 
-type Stage = 'queued' | 'generating' | 'upgrading' | 'looping' | 'uploading';
+type Stage = 'queued' | 'generating' | 'upgrading' | 'normalizing' | 'uploading';
 
 export function clipKey(clipId: string): string {
   return `clips/${new Date().toISOString().slice(0, 10)}/${clipId}.mp4`;
@@ -68,18 +68,20 @@ async function generate(clipId: string, prompt: string) {
     const source = path.join(dir, 'source.mp4');
     await writeFile(source, Buffer.from(await (await fetch(url)).arrayBuffer()));
 
-    setStage(clipId, 'looping');
-    const loop = path.join(dir, 'loop.mp4');
-    await runFfmpeg(buildLoopArgs(source, loop, await probeSeconds(source)));
+    // Stored as-is, not looped: the seam is closed at render time, where the
+    // clip may be one link in a chain rather than a loop on its own.
+    setStage(clipId, 'normalizing');
+    const normalized = path.join(dir, 'normalized.mp4');
+    await runFfmpeg(buildNormalizeArgs(source, normalized));
 
     setStage(clipId, 'uploading');
-    const r2Url = await uploadFile(loop, clipKey(clipId), 'video/mp4');
+    const r2Url = await uploadFile(normalized, clipKey(clipId), 'video/mp4');
 
     db.update(videoClips)
       .set({
         status: 'success',
         r2Url,
-        loopSeconds: await probeSeconds(loop),
+        sourceSeconds: await probeSeconds(normalized),
         completedAt: Date.now(),
       })
       .where(eq(videoClips.clipId, clipId))

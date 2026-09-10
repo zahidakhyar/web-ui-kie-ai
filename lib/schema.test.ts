@@ -48,7 +48,7 @@ function freshDb() {
       render_id TEXT NOT NULL UNIQUE,
       mix_id TEXT NOT NULL,
       image_url TEXT,
-      clip_id TEXT,
+      clip_ids TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
       r2_url TEXT,
       duration_seconds REAL,
@@ -66,7 +66,7 @@ function freshDb() {
       status TEXT NOT NULL DEFAULT 'pending',
       stage TEXT,
       r2_url TEXT,
-      loop_seconds REAL,
+      source_seconds REAL,
       created_at INTEGER NOT NULL,
       completed_at INTEGER,
       error_msg TEXT
@@ -173,13 +173,13 @@ describe('music schema', () => {
     expect(all[0].durationSeconds).toBeNull();
   });
 
-  it('stores a render whose visual source is a clip instead of an image', () => {
+  it('stores a render whose visual source is a chain of clips, in order', () => {
     const db = freshDb();
     db.insert(schema.videoRenders)
       .values({
         renderId: 'r2',
         mixId: 'm1',
-        clipId: 'c1',
+        clipIds: JSON.stringify(['c1', 'c2', 'c3']),
         status: 'running' as const,
         createdAt: 1,
       })
@@ -187,7 +187,7 @@ describe('music schema', () => {
 
     const [row] = db.select().from(schema.videoRenders).all();
     expect(row.imageUrl).toBeNull();
-    expect(row.clipId).toBe('c1');
+    expect(JSON.parse(row.clipIds!)).toEqual(['c1', 'c2', 'c3']);
   });
 
   it('stores a video clip and rejects a duplicate clip_id', () => {
@@ -205,6 +205,6 @@ describe('music schema', () => {
     const all = db.select().from(schema.videoClips).all();
     expect(all).toHaveLength(1);
     expect(all[0].r2Url).toBeNull();
-    expect(all[0].loopSeconds).toBeNull();
+    expect(all[0].sourceSeconds).toBeNull();
   });
 });

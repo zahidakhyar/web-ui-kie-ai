@@ -9,12 +9,13 @@ import { uploadFile } from '@/lib/r2';
 import { musicMixes, videoRenders } from '@/lib/schema';
 import { buildClipArgs, buildLoopMuxArgs, loopsFor } from './clip';
 import { getClip } from './clip-job';
+import { type LoopInput, buildLoopArgs } from './loop';
 import { probeSeconds } from './probe';
 
 /** A render pairs a mix with exactly one of these two visual sources. */
 export interface RenderSource {
   imageUrl?: string | null;
-  clipId?: string | null;
+  clipIds?: string[] | null;
 }
 
 export function renderKey(renderId: string): string {
@@ -43,19 +44,30 @@ function setStage(renderId: string, stage: Stage) {
 }
 
 /**
- * Returns the path to a video that already loops seamlessly. An AI clip arrives
- * that way from the clip job; a still image has to be panned into one here.
+ * Returns the path to a video that loops with no visible seam. AI clips are
+ * chained into one, each crossfading into the next and the last back into the
+ * first; a still image is panned out and back instead.
  */
 async function prepareLoop(
   dir: string,
   renderId: string,
   source: RenderSource,
 ): Promise<string> {
-  if (source.clipId) {
-    const clip = getClip(source.clipId);
-    if (clip?.status !== 'success' || !clip.r2Url) throw new Error('Clip is not ready');
+  if (source.clipIds?.length) {
+    const inputs: LoopInput[] = [];
+    for (const [index, clipId] of source.clipIds.entries()) {
+      const clip = getClip(clipId);
+      if (clip?.status !== 'success' || !clip.r2Url || !clip.sourceSeconds) {
+        throw new Error('Clip is not ready');
+      }
+      const file = path.join(dir, `clip-${index}.mp4`);
+      await download(clip.r2Url, file);
+      inputs.push({ path: file, seconds: clip.sourceSeconds });
+    }
+
+    setStage(renderId, 'clip');
     const loop = path.join(dir, 'loop.mp4');
-    await download(clip.r2Url, loop);
+    await runFfmpeg(buildLoopArgs(inputs, loop));
     return loop;
   }
 
@@ -128,7 +140,7 @@ export async function startRender(
       renderId,
       mixId,
       imageUrl: source.imageUrl ?? null,
-      clipId: source.clipId ?? null,
+      clipIds: source.clipIds?.length ? JSON.stringify(source.clipIds) : null,
       status: 'running',
       stage: 'queued',
       createdAt: Date.now(),

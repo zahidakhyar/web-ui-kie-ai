@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c88d0457-ffea-4041-a9f3-23ee31d7863a",
+  "id": "e3cd3af8-a61f-4f31-986f-b5d5759c9048",
   "prevId": "178d3a79-f70a-45ff-8e7f-dac70a040041",
   "tables": {
     "images": {
@@ -547,8 +547,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "loop_seconds": {
-          "name": "loop_seconds",
+        "source_seconds": {
+          "name": "source_seconds",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
@@ -621,8 +621,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "clip_id": {
-          "name": "clip_id",
+        "clip_ids": {
+          "name": "clip_ids",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

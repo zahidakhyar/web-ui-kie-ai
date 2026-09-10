@@ -12,9 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { MAX_CLIPS } from '@/lib/video/loop';
 import type { MixDto } from './MixLibrary';
 
 /**
@@ -29,7 +31,7 @@ export interface ClipDto {
   prompt: string;
   status: 'pending' | 'running' | 'success' | 'fail';
   stage: string | null;
-  loopSeconds: number | null;
+  sourceSeconds: number | null;
   errorMsg: string | null;
 }
 
@@ -58,7 +60,7 @@ export function VideoBuilder({
   const [source, setSource] = useState<'image' | 'clip'>('image');
   const [mixId, setMixId] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [clipId, setClipId] = useState('');
+  const [clipIds, setClipIds] = useState<string[]>([]);
   const [prompt, setPrompt] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -72,7 +74,23 @@ export function VideoBuilder({
   const chosenMix = mixes.find((m) => m.mixId === mixId);
   const seconds = chosenMix?.actualSeconds ?? chosenMix?.targetSeconds ?? 0;
   const megabytes = Math.round((MEGABYTES_PER_HOUR[source] * seconds) / HOUR_SECONDS);
-  const chosenSource = source === 'image' ? imageUrl : clipId;
+  const chosenSource = source === 'image' ? Boolean(imageUrl) : clipIds.length > 0;
+
+  /**
+   * Order matters: the clips are chained in the order they were picked, so a
+   * re-tick sends a clip to the end of the sequence rather than back to its
+   * old position.
+   */
+  function toggleClip(id: string, next: boolean) {
+    setClipIds((prev) =>
+      next ? [...prev, id] : prev.filter((existing) => existing !== id),
+    );
+  }
+
+  const loopSeconds = clipIds.reduce((total, id) => {
+    const clip = clips.find((c) => c.clipId === id);
+    return total + (clip?.sourceSeconds ?? 0);
+  }, 0) - clipIds.length;
 
   async function handleGenerateClip() {
     setGenerating(true);
@@ -101,7 +119,7 @@ export function VideoBuilder({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(
-          source === 'image' ? { mixId, imageUrl } : { mixId, clipId },
+          source === 'image' ? { mixId, imageUrl } : { mixId, clipIds },
         ),
       });
       const json = await res.json();
@@ -203,22 +221,43 @@ export function VideoBuilder({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="video-clip">Background clip</Label>
+            <Label>Background clips</Label>
             {clips.length === 0 ? (
               <p className="text-sm text-muted-foreground">No finished clips yet.</p>
             ) : (
-              <Select value={clipId} onValueChange={(v) => v !== null && setClipId(v)}>
-                <SelectTrigger id="video-clip">
-                  <SelectValue placeholder="Pick a clip" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clips.map((c) => (
-                    <SelectItem key={c.clipId} value={c.clipId}>
-                      {c.prompt.slice(0, 60)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <ul className="flex flex-col gap-2">
+                  {clips.map((c) => {
+                    const order = clipIds.indexOf(c.clipId);
+                    const atLimit = order === -1 && clipIds.length >= MAX_CLIPS;
+                    return (
+                      <li key={c.clipId} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`clip-${c.clipId}`}
+                          checked={order !== -1}
+                          disabled={atLimit}
+                          onCheckedChange={(next) => toggleClip(c.clipId, next === true)}
+                        />
+                        <Label
+                          htmlFor={`clip-${c.clipId}`}
+                          className="truncate font-normal text-muted-foreground data-[picked=true]:text-foreground"
+                          data-picked={order !== -1}
+                        >
+                          {order !== -1 && (
+                            <span className="tabular-nums">{order + 1}.</span>
+                          )}
+                          {c.prompt.slice(0, 60)}
+                        </Label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-xs text-muted-foreground">
+                  {clipIds.length > 0
+                    ? `Chained in the order ticked, ${loopSeconds}s before it repeats.`
+                    : `Tick up to ${MAX_CLIPS}. More clips means longer before the video repeats.`}
+                </p>
+              </>
             )}
           </div>
         </TabsContent>

@@ -103,11 +103,11 @@ export const videoClips = sqliteTable('video_clips', {
     .notNull()
     .default('pending'),
   stage: text('stage', {
-    enum: ['queued', 'generating', 'upgrading', 'looping', 'uploading'],
+    enum: ['queued', 'generating', 'upgrading', 'normalizing', 'uploading'],
   }),
   r2Url: text('r2_url'),
-  /** Length of the looped clip, which is one crossfade shorter than the source. */
-  loopSeconds: real('loop_seconds'),
+  /** Length of the stored clip. The seam is closed at render time, not here. */
+  sourceSeconds: real('source_seconds'),
   createdAt: integer('created_at').notNull(),
   completedAt: integer('completed_at'),
   errorMsg: text('error_msg'),
@@ -117,9 +117,10 @@ export const videoRenders = sqliteTable('video_renders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   renderId: text('render_id').notNull().unique(),
   mixId: text('mix_id').notNull(),
-  /** Exactly one of imageUrl / clipId is set; clipId means a looped AI clip. */
+  /** Exactly one of imageUrl / clipIds is set. */
   imageUrl: text('image_url'),
-  clipId: text('clip_id'),
+  /** JSON array of videoClips.clipId, chained in order into one seamless loop. */
+  clipIds: text('clip_ids'),
   status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
     .notNull()
     .default('pending'),

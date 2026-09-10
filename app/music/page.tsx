@@ -19,7 +19,7 @@ const POLL_MS = 5000;
 const STAGE_LABEL: Record<string, string> = {
   queued: 'Queued',
   downloading: 'Fetching the mix and the background',
-  clip: 'Rendering the pan',
+  clip: 'Building the seamless loop',
   boomerang: 'Building the seamless loop',
   muxing: 'Assembling the full video',
   uploading: 'Uploading',
@@ -30,7 +30,7 @@ const CLIP_STAGE_LABEL: Record<string, string> = {
   queued: 'Queued',
   generating: 'Veo is generating the clip',
   upgrading: 'Upgrading to 1080p',
-  looping: 'Closing the loop seam',
+  normalizing: 'Normalizing the clip',
   uploading: 'Uploading',
 };
 

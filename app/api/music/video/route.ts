@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { musicMixes } from '@/lib/schema';
 import { getClip } from '@/lib/video/clip-job';
+import { MAX_CLIPS } from '@/lib/video/loop';
 import { startRender } from '@/lib/video/render';
 
 /**
@@ -23,18 +24,27 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     mixId?: unknown;
     imageUrl?: unknown;
-    clipId?: unknown;
+    clipIds?: unknown;
   };
 
   const mixId = typeof body.mixId === 'string' ? body.mixId : '';
   const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl : '';
-  const clipId = typeof body.clipId === 'string' ? body.clipId : '';
+  const clipIds = Array.isArray(body.clipIds)
+    ? body.clipIds.filter((v): v is string => typeof v === 'string')
+    : [];
 
   if (!mixId) return NextResponse.json({ error: 'mixId is required' }, { status: 400 });
 
-  if (Boolean(imageUrl) === Boolean(clipId)) {
+  if (Boolean(imageUrl) === (clipIds.length > 0)) {
     return NextResponse.json(
-      { error: 'exactly one of imageUrl or clipId is required' },
+      { error: 'exactly one of imageUrl or clipIds is required' },
+      { status: 400 },
+    );
+  }
+
+  if (clipIds.length > MAX_CLIPS) {
+    return NextResponse.json(
+      { error: `at most ${MAX_CLIPS} clips` },
       { status: 400 },
     );
   }
@@ -46,7 +56,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (clipId) {
+  for (const clipId of clipIds) {
     const clip = getClip(clipId);
     if (!clip) return NextResponse.json({ error: 'unknown clipId' }, { status: 400 });
     if (clip.status !== 'success') {
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   const renderId = await startRender(mixId, {
     imageUrl: imageUrl || null,
-    clipId: clipId || null,
+    clipIds: clipIds.length ? clipIds : null,
   });
   return NextResponse.json({ renderId });
 }

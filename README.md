@@ -22,9 +22,9 @@ The `/music` page is a three-stage flow, each stage feeding the next:
 2. **Mix** — select the tracks you like and a target length (5, 15, 30, or 60 minutes). ffmpeg chains them with 2-second crossfades into a single 192 kbps MP3, repeating the selection as needed to hit the target.
 3. **Video** — pair a finished mix with a background, from either source:
    - **Still image** already stored in your R2 bucket. The renderer builds one 60-second seamless pan at 1080p30.
-   - **AI clip** generated from a text prompt by Veo 3.1 Lite (8 seconds at 1080p, about 35 credits). The clip's last frame never matches its first, so the seam is closed by crossfading the tail back onto the head, leaving a 7-second loop. Clips are reusable across mixes.
+   - **AI clips** generated from text prompts by Veo 3.1 Lite (8 seconds at 1080p, about 35 credits each). Pick up to four. They are chained in the order you tick them, each crossfading into the next and the last back into the head of the first, so the whole sequence loops with no visible seam. One clip gives a 7-second loop, four give 22 seconds, which is the difference between a background that reads as a loop and one that does not. Clips are reusable across mixes.
 
-   Either way one short loop is rendered once and stream-copied under the full mix, so a one-hour mix costs one short render. Progress reports the actual ffmpeg stage, not just a spinner. An AI clip encodes roughly 0.8 GB per hour of output against 235 MB for a still pan, because the frame keeps changing.
+   Either way one short loop is built once and stream-copied under the full mix, so a one-hour mix costs one short render. Progress reports the actual ffmpeg stage, not just a spinner. An AI clip encodes roughly 0.8 GB per hour of output against 235 MB for a still pan, because the frame keeps changing.
 
 Mixes and renders both run server-side and upload the result to R2, where the mix and video libraries list them for playback and download.
 
