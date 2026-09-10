@@ -9,7 +9,7 @@ import { MusicForm } from '@/components/music/MusicForm';
 import { Stage } from '@/components/music/Stage';
 import type { MusicTrackDto } from '@/components/music/TrackCard';
 import { TrackList } from '@/components/music/TrackList';
-import { VideoBuilder } from '@/components/music/VideoBuilder';
+import { VideoBuilder, type ClipDto } from '@/components/music/VideoBuilder';
 import { VideoLibrary, type VideoDto } from '@/components/music/VideoLibrary';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -18,10 +18,19 @@ const POLL_MS = 5000;
 /** Human labels for the ffmpeg step the renderer reports. */
 const STAGE_LABEL: Record<string, string> = {
   queued: 'Queued',
-  downloading: 'Fetching the mix and image',
-  clip: 'Rendering the 30s pan',
+  downloading: 'Fetching the mix and the background',
+  clip: 'Building the seamless loop',
   boomerang: 'Building the seamless loop',
   muxing: 'Assembling the full video',
+  uploading: 'Uploading',
+};
+
+/** The clip job talks to Veo, so its steps are its own. */
+const CLIP_STAGE_LABEL: Record<string, string> = {
+  queued: 'Queued',
+  generating: 'Veo is generating the clip',
+  upgrading: 'Upgrading to 1080p',
+  normalizing: 'Normalizing the clip',
   uploading: 'Uploading',
 };
 
@@ -31,6 +40,7 @@ export default function MusicPage() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [mixId, setMixId] = useState<string | null>(null);
   const [renderId, setRenderId] = useState<string | null>(null);
+  const [clipId, setClipId] = useState<string | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
 
   const { data: trackData, isLoading: tracksLoading } = useSWR<{
@@ -90,6 +100,31 @@ export default function MusicPage() {
       },
     },
   );
+
+  const { data: clipState } = useSWR<{
+    status: ClipDto['status'];
+    stage: string | null;
+    errorMsg: string | null;
+  }>(clipId ? `/api/music/clip/${clipId}` : null, fetcher, {
+    refreshInterval: POLL_MS,
+    refreshWhenHidden: true,
+    revalidateOnFocus: false,
+    onSuccess: (clip) => {
+      if (clip.status === 'success') {
+        setClipId(null);
+        toast.success('Clip ready');
+        mutate('/api/music/clips');
+        mutate('/api/credits');
+      } else if (clip.status === 'fail') {
+        setClipId(null);
+        toast.error(clip.errorMsg ?? 'Clip generation failed');
+      }
+    },
+    onError: (error: Error) => {
+      setClipId(null);
+      toast.error(error.message || 'Lost contact with the clip job');
+    },
+  });
 
   const { data: renderState } = useSWR<{
     status: VideoDto['status'];
@@ -179,11 +214,17 @@ export default function MusicPage() {
       <Stage
         index={3}
         title="Render the video"
-        hint="A still image is panned, mirrored into a seamless loop, then muxed with the mix."
+        hint="Pick a still image to pan, or generate an AI clip. Either way the visual loops under the mix."
         locked={readyMixes.length === 0}
       >
         <div className="flex flex-col gap-6">
-          <VideoBuilder onRenderStarted={setRenderId} />
+          <VideoBuilder onRenderStarted={setRenderId} onClipStarted={setClipId} />
+          {clipId && (
+            <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Spinner />
+              {CLIP_STAGE_LABEL[clipState?.stage ?? 'queued'] ?? 'Generating'}…
+            </p>
+          )}
           {renderId && (
             <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />

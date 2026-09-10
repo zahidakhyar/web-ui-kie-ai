@@ -1,3 +1,5 @@
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import {
   DeleteObjectCommand,
   PutObjectCommand,
@@ -29,6 +31,18 @@ function getR2Client(): S3Client {
 const BUCKET = process.env.R2_BUCKET_NAME ?? 'ai-images';
 const PUBLIC_URL = process.env.R2_PUBLIC_URL; // e.g., https://pub-xxx.r2.dev or custom domain
 
+async function resolvePublicUrl(client: S3Client, key: string): Promise<string> {
+  if (PUBLIC_URL) return `${PUBLIC_URL.replace(/\/$/, '')}/${key}`;
+
+  // Fallback: presign (valid 7 days) and strip the query to get the object URL.
+  const presignedUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key }),
+    { expiresIn: 604800 },
+  );
+  return presignedUrl.split('?')[0];
+}
+
 /**
  * Downloads an image from the given URL and uploads it to Cloudflare R2.
  * Returns the public URL of the uploaded image.
@@ -59,18 +73,7 @@ export async function uploadImageFromUrl(
     }),
   );
 
-  if (PUBLIC_URL) {
-    return `${PUBLIC_URL.replace(/\/$/, '')}/${key}`;
-  }
-
-  // Fallback: generate a presigned URL (valid 7 days)
-  const presignedUrl = await getSignedUrl(
-    client,
-    new PutObjectCommand({ Bucket: BUCKET, Key: key }),
-    { expiresIn: 604800 },
-  );
-  // Return the object URL without query params as public URL
-  return presignedUrl.split('?')[0];
+  return resolvePublicUrl(client, key);
 }
 
 export async function deleteImage(key: string): Promise<void> {
@@ -102,16 +105,33 @@ export async function uploadBuffer(
     }),
   );
 
-  if (PUBLIC_URL) {
-    return `${PUBLIC_URL.replace(/\/$/, '')}/${key}`;
-  }
+  return resolvePublicUrl(client, key);
+}
 
-  const presignedUrl = await getSignedUrl(
-    client,
-    new PutObjectCommand({ Bucket: BUCKET, Key: key }),
-    { expiresIn: 604800 },
+/**
+ * Streams a file straight from disk. `uploadBuffer` would hold the whole thing
+ * in the Node heap first, and an hour of AI-clip video is ~0.73 GB — enough to
+ * OOM the container on its own.
+ */
+export async function uploadFile(
+  filePath: string,
+  key: string,
+  contentType: string,
+): Promise<string> {
+  const client = getR2Client();
+  const { size } = await stat(filePath);
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: createReadStream(filePath),
+      ContentType: contentType,
+      ContentLength: size,
+    }),
   );
-  return presignedUrl.split('?')[0];
+
+  return resolvePublicUrl(client, key);
 }
 
 export function buildR2Key(

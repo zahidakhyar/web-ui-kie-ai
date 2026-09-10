@@ -92,11 +92,35 @@ export const musicMixes = sqliteTable('music_mixes', {
   errorMsg: text('error_msg'),
 });
 
+export const videoClips = sqliteTable('video_clips', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  clipId: text('clip_id').notNull().unique(),
+  prompt: text('prompt').notNull(),
+  model: text('model').notNull(),
+  /** Veo's generate task, then the 1080p upgrade, which gets a different id. */
+  taskId: text('task_id'),
+  status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  stage: text('stage', {
+    enum: ['queued', 'generating', 'upgrading', 'normalizing', 'uploading'],
+  }),
+  r2Url: text('r2_url'),
+  /** Length of the stored clip. The seam is closed at render time, not here. */
+  sourceSeconds: real('source_seconds'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});
+
 export const videoRenders = sqliteTable('video_renders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   renderId: text('render_id').notNull().unique(),
   mixId: text('mix_id').notNull(),
-  imageUrl: text('image_url').notNull(),
+  /** Exactly one of imageUrl / clipIds is set. */
+  imageUrl: text('image_url'),
+  /** JSON array of videoClips.clipId, chained in order into one seamless loop. */
+  clipIds: text('clip_ids'),
   status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
     .notNull()
     .default('pending'),
