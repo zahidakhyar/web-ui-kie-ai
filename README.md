@@ -20,7 +20,11 @@ The `/music` page is a three-stage flow, each stage feeding the next:
 
 1. **Generate** — genre presets (lofi, trap, phonk, ambient, jazz, and more) fill an editable style prompt. Pick a ~21s loop (cheapest, best for long mixes) or a 1–6 minute track. Instrumental by default; vocal mode takes your own lyrics plus an optional voice gender. Each generation returns two takes.
 2. **Mix** — select the tracks you like and a target length (5, 15, 30, or 60 minutes). ffmpeg chains them with 2-second crossfades into a single 192 kbps MP3, repeating the selection as needed to hit the target.
-3. **Video** — pair a finished mix with any image already stored in your R2 bucket. The renderer builds one 60-second seamless pan at 1080p30 and loops it under the full mix, so a one-hour mix costs one 60-second render. Progress reports the actual ffmpeg stage, not just a spinner.
+3. **Video** — pair a finished mix with a background, from either source:
+   - **Still image** already stored in your R2 bucket. The renderer builds one 60-second seamless pan at 1080p30.
+   - **AI clip** generated from a text prompt by Veo 3.1 Lite (8 seconds at 1080p, about 35 credits). The clip's last frame never matches its first, so the seam is closed by crossfading the tail back onto the head, leaving a 7-second loop. Clips are reusable across mixes.
+
+   Either way one short loop is rendered once and stream-copied under the full mix, so a one-hour mix costs one short render. Progress reports the actual ffmpeg stage, not just a spinner. An AI clip encodes roughly 0.8 GB per hour of output against 235 MB for a still pan, because the frame keeps changing.
 
 Mixes and renders both run server-side and upload the result to R2, where the mix and video libraries list them for playback and download.
 
@@ -142,17 +146,19 @@ app/
       library/          — GET: generated tracks
       mix/, mixes/      — POST: assemble a mix | GET: mix status and list
       video/, videos/   — POST: render a video | GET: render status and list
+      clip/, clips/       — POST: generate an AI background clip | GET: clip status and list
 lib/
   kie-ai.ts             — KIE.ai API client (image models + credits)
   r2.ts                 — Cloudflare R2 upload/delete helpers
   db.ts                 — Drizzle singleton
-  schema.ts             — Database schema (tasks, images, uploads, music, mixes, renders)
+  schema.ts             — Database schema (tasks, images, uploads, music, mixes, clips, renders)
   models.ts             — Model registry
   images/               — Orphaned-task recovery for the image pipeline
   suno/                 — Suno client, request builder, limits, storage, reconcile
   music/                — Genre presets
   audio/                — Mix planner and the ffmpeg acrossfade chain
-  video/                — Pan clip + loop-mux argv builders and the render job
+  video/                — Pan clip, seam-loop and loop-mux argv builders, the Veo
+                          client, and the clip and render jobs
 components/
   generator/            — Form, model selector, parameter fields, progress
   upscale/              — Gallery picker, before/after compare, progress

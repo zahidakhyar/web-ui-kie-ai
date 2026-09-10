@@ -1,13 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { runFfmpeg } from '@/lib/audio/ffmpeg';
 import { db } from '@/lib/db';
-import { uploadBuffer } from '@/lib/r2';
+import { uploadFile } from '@/lib/r2';
 import { musicMixes, videoRenders } from '@/lib/schema';
-import { LOOP_SECONDS, buildClipArgs, buildLoopMuxArgs, loopsFor } from './clip';
+import { buildClipArgs, buildLoopMuxArgs, loopsFor } from './clip';
+import { getClip } from './clip-job';
+import { probeSeconds } from './probe';
+
+/** A render pairs a mix with exactly one of these two visual sources. */
+export interface RenderSource {
+  imageUrl?: string | null;
+  clipId?: string | null;
+}
 
 export function renderKey(renderId: string): string {
   return `videos/${new Date().toISOString().slice(0, 10)}/${renderId}.mp4`;
@@ -34,30 +42,57 @@ function setStage(renderId: string, stage: Stage) {
     .run();
 }
 
-async function render(renderId: string, mixId: string, imageUrl: string) {
+/**
+ * Returns the path to a video that already loops seamlessly. An AI clip arrives
+ * that way from the clip job; a still image has to be panned into one here.
+ */
+async function prepareLoop(
+  dir: string,
+  renderId: string,
+  source: RenderSource,
+): Promise<string> {
+  if (source.clipId) {
+    const clip = getClip(source.clipId);
+    if (clip?.status !== 'success' || !clip.r2Url) throw new Error('Clip is not ready');
+    const loop = path.join(dir, 'loop.mp4');
+    await download(clip.r2Url, loop);
+    return loop;
+  }
+
+  if (!source.imageUrl) throw new Error('Render has no visual source');
+  const image = path.join(dir, 'bg.img');
+  await download(source.imageUrl, image);
+
+  // Filter once over one loop, never over the full export.
+  setStage(renderId, 'clip');
+  const clip = path.join(dir, 'clip.mp4');
+  await runFfmpeg(buildClipArgs(image, clip));
+  return clip;
+}
+
+async function render(renderId: string, mixId: string, source: RenderSource) {
   const dir = await mkdtemp(path.join(tmpdir(), 'render-'));
   try {
     const mix = db.select().from(musicMixes).where(eq(musicMixes.mixId, mixId)).get();
     if (!mix?.r2Url) throw new Error('Mix is not ready');
 
     setStage(renderId, 'downloading');
-    const image = path.join(dir, 'bg.img');
     const audio = path.join(dir, 'mix.mp3');
-    await download(imageUrl, image);
     await download(mix.r2Url, audio);
 
-    // Filter once over LOOP_SECONDS, never over the full export.
-    setStage(renderId, 'clip');
-    const clip = path.join(dir, 'clip.mp4');
-    await runFfmpeg(buildClipArgs(image, clip));
+    const loop = await prepareLoop(dir, renderId, source);
 
     setStage(renderId, 'muxing');
     const seconds = mix.actualSeconds ?? mix.targetSeconds;
     const out = path.join(dir, 'out.mp4');
-    await runFfmpeg(buildLoopMuxArgs(clip, audio, loopsFor(seconds, LOOP_SECONDS), out));
+    // Measure the loop rather than assuming its requested length: a clip asked
+    // for as 8s can encode to 7.96s, and `-shortest` would then clip the audio.
+    const loops = loopsFor(seconds, await probeSeconds(loop));
+    await runFfmpeg(buildLoopMuxArgs(loop, audio, loops, out));
 
     setStage(renderId, 'uploading');
-    const r2Url = await uploadBuffer(await readFile(out), renderKey(renderId), 'video/mp4');
+    // Streamed, not read into the heap: an hour of AI clip is ~0.73 GB.
+    const r2Url = await uploadFile(out, renderKey(renderId), 'video/mp4');
 
     db.update(videoRenders)
       .set({
@@ -82,22 +117,26 @@ async function render(renderId: string, mixId: string, imageUrl: string) {
   }
 }
 
-export async function startRender(mixId: string, imageUrl: string): Promise<string> {
+export async function startRender(
+  mixId: string,
+  source: RenderSource,
+): Promise<string> {
   const renderId = randomUUID();
 
   db.insert(videoRenders)
     .values({
       renderId,
       mixId,
-      imageUrl,
+      imageUrl: source.imageUrl ?? null,
+      clipId: source.clipId ?? null,
       status: 'running',
       stage: 'queued',
       createdAt: Date.now(),
     })
     .run();
 
-  // Detached: a 1-hour export writes ~235 MB, far past any request timeout.
-  void render(renderId, mixId, imageUrl);
+  // Detached: a long export writes hundreds of MB, far past any request timeout.
+  void render(renderId, mixId, source);
 
   return renderId;
 }

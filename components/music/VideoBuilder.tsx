@@ -13,11 +13,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import type { MixDto } from './MixLibrary';
 
-/** Measured: a 1-hour 1080p30 export from a still image is ~235 MB. */
-const MEGABYTES_PER_HOUR = 235;
+/**
+ * Measured on real renders: a still pan encodes to ~235 MB per hour, an AI clip
+ * to ~800 MB, because the frame keeps changing.
+ */
+const MEGABYTES_PER_HOUR = { image: 235, clip: 800 };
 const HOUR_SECONDS = 3600;
+
+export interface ClipDto {
+  clipId: string;
+  prompt: string;
+  status: 'pending' | 'running' | 'success' | 'fail';
+  stage: string | null;
+  loopSeconds: number | null;
+  errorMsg: string | null;
+}
 
 interface GalleryItem {
   taskId: string;
@@ -29,27 +43,55 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function VideoBuilder({
   onRenderStarted,
+  onClipStarted,
 }: {
   onRenderStarted: (renderId: string) => void;
+  onClipStarted: (clipId: string) => void;
 }) {
   const { data: mixData } = useSWR<{ mixes: MixDto[] }>('/api/music/mixes', fetcher);
   const { data: galleryData } = useSWR<{ items: GalleryItem[] }>(
     '/api/gallery?limit=50',
     fetcher,
   );
+  const { data: clipData } = useSWR<{ clips: ClipDto[] }>('/api/music/clips', fetcher);
 
+  const [source, setSource] = useState<'image' | 'clip'>('image');
   const [mixId, setMixId] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [clipId, setClipId] = useState('');
+  const [prompt, setPrompt] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const mixes = (mixData?.mixes ?? []).filter((m) => m.status === 'success');
   const images = (galleryData?.items ?? []).flatMap((item) =>
     (item.images ?? []).map((img) => ({ url: img.r2Url, label: item.prompt })),
   );
+  const clips = (clipData?.clips ?? []).filter((c) => c.status === 'success');
 
   const chosenMix = mixes.find((m) => m.mixId === mixId);
   const seconds = chosenMix?.actualSeconds ?? chosenMix?.targetSeconds ?? 0;
-  const megabytes = Math.round((MEGABYTES_PER_HOUR * seconds) / HOUR_SECONDS);
+  const megabytes = Math.round((MEGABYTES_PER_HOUR[source] * seconds) / HOUR_SECONDS);
+  const chosenSource = source === 'image' ? imageUrl : clipId;
+
+  async function handleGenerateClip() {
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/music/clips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Clip failed to start');
+      onClipStarted(json.clipId);
+      setPrompt('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Clip failed to start');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,7 +100,9 @@ export function VideoBuilder({
       const res = await fetch('/api/music/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mixId, imageUrl }),
+        body: JSON.stringify(
+          source === 'image' ? { mixId, imageUrl } : { mixId, clipId },
+        ),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Render failed to start');
@@ -70,11 +114,9 @@ export function VideoBuilder({
     }
   }
 
-  if (mixes.length === 0 || images.length === 0) {
+  if (mixes.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Needs at least one finished mix and one image in the gallery.
-      </p>
+      <p className="text-sm text-muted-foreground">Needs at least one finished mix.</p>
     );
   }
 
@@ -96,36 +138,101 @@ export function VideoBuilder({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="video-image">Background image</Label>
-        <Select value={imageUrl} onValueChange={(v) => v !== null && setImageUrl(v)}>
-          <SelectTrigger id="video-image">
-            <SelectValue placeholder="Pick an image" />
-          </SelectTrigger>
-          <SelectContent>
-            {images.map((img) => (
-              <SelectItem key={img.url} value={img.url}>
-                {img.label.slice(0, 60)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {imageUrl && (
-          // Plain <img>: next/image only whitelists one remote host in next.config.ts.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className="mt-1 w-48 rounded object-cover" />
-        )}
-      </div>
+      <Tabs
+        value={source}
+        onValueChange={(v) => v !== null && setSource(v as 'image' | 'clip')}
+      >
+        <TabsList>
+          <TabsTrigger value="image">Still image</TabsTrigger>
+          <TabsTrigger value="clip">AI clip</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="image" className="flex flex-col gap-1.5 pt-3">
+          <Label htmlFor="video-image">Background image</Label>
+          {images.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No images in the gallery yet.
+            </p>
+          ) : (
+            <>
+              <Select value={imageUrl} onValueChange={(v) => v !== null && setImageUrl(v)}>
+                <SelectTrigger id="video-image">
+                  <SelectValue placeholder="Pick an image" />
+                </SelectTrigger>
+                <SelectContent>
+                  {images.map((img) => (
+                    <SelectItem key={img.url} value={img.url}>
+                      {img.label.slice(0, 60)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {imageUrl && (
+                // Plain <img>: next/image only whitelists one remote host in next.config.ts.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl} alt="" className="mt-1 w-48 rounded object-cover" />
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="clip" className="flex flex-col gap-4 pt-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="clip-prompt">Describe a new clip</Label>
+            <Textarea
+              id="clip-prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              rows={3}
+              placeholder="Slow drifting neon clouds over a night skyline, static camera, no people"
+            />
+            <p className="text-xs text-muted-foreground">
+              Veo 3.1 Lite, 8 seconds at 1080p, about 35 credits. Roughly a minute
+              and a half, and the clip is reusable across mixes.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="self-start"
+              disabled={generating || prompt.trim().length === 0}
+              onClick={handleGenerateClip}
+            >
+              {generating && <Spinner data-icon="inline-start" />}
+              Generate clip
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="video-clip">Background clip</Label>
+            {clips.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No finished clips yet.</p>
+            ) : (
+              <Select value={clipId} onValueChange={(v) => v !== null && setClipId(v)}>
+                <SelectTrigger id="video-clip">
+                  <SelectValue placeholder="Pick a clip" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clips.map((c) => (
+                    <SelectItem key={c.clipId} value={c.clipId}>
+                      {c.prompt.slice(0, 60)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {chosenMix && (
         <p className="text-xs text-muted-foreground">
-          1920x1080 at 30 fps, roughly {megabytes} MB.
+          1920x1080, roughly {megabytes} MB.
         </p>
       )}
 
       <Button
         type="submit"
-        disabled={submitting || !mixId || !imageUrl}
+        disabled={submitting || !mixId || !chosenSource}
         className="self-start"
       >
         {submitting && <Spinner data-icon="inline-start" />}

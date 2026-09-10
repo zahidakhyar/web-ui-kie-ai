@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { musicMixes } from '@/lib/schema';
+import { getClip } from '@/lib/video/clip-job';
 import { startRender } from '@/lib/video/render';
 
 /**
@@ -19,20 +20,38 @@ function isAllowedImageUrl(raw: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as { mixId?: unknown; imageUrl?: unknown };
+  const body = (await request.json()) as {
+    mixId?: unknown;
+    imageUrl?: unknown;
+    clipId?: unknown;
+  };
 
   const mixId = typeof body.mixId === 'string' ? body.mixId : '';
   const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl : '';
+  const clipId = typeof body.clipId === 'string' ? body.clipId : '';
 
   if (!mixId) return NextResponse.json({ error: 'mixId is required' }, { status: 400 });
-  if (!imageUrl) {
-    return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
+
+  if (Boolean(imageUrl) === Boolean(clipId)) {
+    return NextResponse.json(
+      { error: 'exactly one of imageUrl or clipId is required' },
+      { status: 400 },
+    );
   }
-  if (!isAllowedImageUrl(imageUrl)) {
+
+  if (imageUrl && !isAllowedImageUrl(imageUrl)) {
     return NextResponse.json(
       { error: 'imageUrl must be hosted on this app’s own storage' },
       { status: 400 },
     );
+  }
+
+  if (clipId) {
+    const clip = getClip(clipId);
+    if (!clip) return NextResponse.json({ error: 'unknown clipId' }, { status: 400 });
+    if (clip.status !== 'success') {
+      return NextResponse.json({ error: 'clip is not ready yet' }, { status: 400 });
+    }
   }
 
   const mix = db.select().from(musicMixes).where(eq(musicMixes.mixId, mixId)).get();
@@ -41,6 +60,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'mix is not ready yet' }, { status: 400 });
   }
 
-  const renderId = await startRender(mixId, imageUrl);
+  const renderId = await startRender(mixId, {
+    imageUrl: imageUrl || null,
+    clipId: clipId || null,
+  });
   return NextResponse.json({ renderId });
 }

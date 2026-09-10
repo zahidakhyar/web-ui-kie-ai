@@ -47,11 +47,26 @@ function freshDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       render_id TEXT NOT NULL UNIQUE,
       mix_id TEXT NOT NULL,
-      image_url TEXT NOT NULL,
+      image_url TEXT,
+      clip_id TEXT,
       status TEXT NOT NULL DEFAULT 'pending',
       r2_url TEXT,
       duration_seconds REAL,
       stage TEXT,
+      created_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      error_msg TEXT
+    );
+    CREATE TABLE video_clips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clip_id TEXT NOT NULL UNIQUE,
+      prompt TEXT NOT NULL,
+      model TEXT NOT NULL,
+      task_id TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      stage TEXT,
+      r2_url TEXT,
+      loop_seconds REAL,
       created_at INTEGER NOT NULL,
       completed_at INTEGER,
       error_msg TEXT
@@ -156,5 +171,40 @@ describe('music schema', () => {
     expect(all).toHaveLength(1);
     expect(all[0].r2Url).toBeNull();
     expect(all[0].durationSeconds).toBeNull();
+  });
+
+  it('stores a render whose visual source is a clip instead of an image', () => {
+    const db = freshDb();
+    db.insert(schema.videoRenders)
+      .values({
+        renderId: 'r2',
+        mixId: 'm1',
+        clipId: 'c1',
+        status: 'running' as const,
+        createdAt: 1,
+      })
+      .run();
+
+    const [row] = db.select().from(schema.videoRenders).all();
+    expect(row.imageUrl).toBeNull();
+    expect(row.clipId).toBe('c1');
+  });
+
+  it('stores a video clip and rejects a duplicate clip_id', () => {
+    const db = freshDb();
+    const row = {
+      clipId: 'c1',
+      prompt: 'drifting neon clouds',
+      model: 'veo3_lite',
+      status: 'running' as const,
+      createdAt: 1,
+    };
+    db.insert(schema.videoClips).values(row).run();
+    expect(() => db.insert(schema.videoClips).values(row).run()).toThrow(/UNIQUE/);
+
+    const all = db.select().from(schema.videoClips).all();
+    expect(all).toHaveLength(1);
+    expect(all[0].r2Url).toBeNull();
+    expect(all[0].loopSeconds).toBeNull();
   });
 });

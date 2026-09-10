@@ -92,11 +92,34 @@ export const musicMixes = sqliteTable('music_mixes', {
   errorMsg: text('error_msg'),
 });
 
+export const videoClips = sqliteTable('video_clips', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  clipId: text('clip_id').notNull().unique(),
+  prompt: text('prompt').notNull(),
+  model: text('model').notNull(),
+  /** Veo's generate task, then the 1080p upgrade, which gets a different id. */
+  taskId: text('task_id'),
+  status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
+    .notNull()
+    .default('pending'),
+  stage: text('stage', {
+    enum: ['queued', 'generating', 'upgrading', 'looping', 'uploading'],
+  }),
+  r2Url: text('r2_url'),
+  /** Length of the looped clip, which is one crossfade shorter than the source. */
+  loopSeconds: real('loop_seconds'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
+  errorMsg: text('error_msg'),
+});
+
 export const videoRenders = sqliteTable('video_renders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   renderId: text('render_id').notNull().unique(),
   mixId: text('mix_id').notNull(),
-  imageUrl: text('image_url').notNull(),
+  /** Exactly one of imageUrl / clipId is set; clipId means a looped AI clip. */
+  imageUrl: text('image_url'),
+  clipId: text('clip_id'),
   status: text('status', { enum: ['pending', 'running', 'success', 'fail'] })
     .notNull()
     .default('pending'),
