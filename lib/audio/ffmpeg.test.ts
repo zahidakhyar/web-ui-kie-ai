@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMixArgs, runFfmpeg } from './ffmpeg';
+import { buildMixArgs, describeExit, runFfmpeg } from './ffmpeg';
 
 describe('buildMixArgs', () => {
   it('emits one -i per input and a chain of n-1 acrossfade stages', () => {
@@ -39,5 +39,31 @@ describe('buildMixArgs', () => {
 describe('runFfmpeg', () => {
   it('rejects with ffmpeg stderr when the command fails', async () => {
     await expect(runFfmpeg(['-thisFlagDoesNotExist'])).rejects.toThrow(/ffmpeg/i);
+  });
+});
+
+describe('describeExit', () => {
+  it('names the signal instead of reporting a null exit code', () => {
+    expect(describeExit(null, 'SIGKILL', '')).toContain('SIGKILL');
+    expect(describeExit(null, 'SIGKILL', '')).not.toContain('null');
+  });
+
+  it('explains what SIGKILL and SIGTERM usually mean', () => {
+    expect(describeExit(null, 'SIGKILL', '')).toMatch(/out of memory/);
+    expect(describeExit(null, 'SIGTERM', '')).toMatch(/stopped or restarted/);
+  });
+
+  it('still copes when no signal is reported', () => {
+    expect(describeExit(null, null, '')).toMatch(/unknown signal/);
+  });
+
+  it('keeps stderr for a real non-zero exit', () => {
+    expect(describeExit(1, null, '  Invalid argument  ')).toBe(
+      'ffmpeg exited 1: Invalid argument',
+    );
+  });
+
+  it('omits the empty tail when a failing exit printed nothing', () => {
+    expect(describeExit(1, null, '')).toBe('ffmpeg exited 1');
   });
 });
