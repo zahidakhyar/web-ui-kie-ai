@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { MAX_CLIPS } from '@/lib/video/loop';
+import { MAX_CLIPS, loopSecondsFor } from '@/lib/video/loop';
 import type { MixDto } from './MixLibrary';
 
 /**
@@ -87,10 +87,11 @@ export function VideoBuilder({
     );
   }
 
-  const loopSeconds = clipIds.reduce((total, id) => {
+  const picked = clipIds.flatMap((id) => {
     const clip = clips.find((c) => c.clipId === id);
-    return total + (clip?.sourceSeconds ?? 0);
-  }, 0) - clipIds.length;
+    return clip?.sourceSeconds ? [{ path: id, seconds: clip.sourceSeconds }] : [];
+  });
+  const loopSeconds = picked.length > 0 ? loopSecondsFor(picked) : 0;
 
   async function handleGenerateClip() {
     setGenerating(true);
