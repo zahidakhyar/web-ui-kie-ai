@@ -31,6 +31,34 @@ export function buildMixArgs(plan: MixPlan, outputPath: string): string[] {
   return args;
 }
 
+/**
+ * A signal death gives `code === null` and, under `-v error`, an empty stderr —
+ * so the exit code alone says nothing. Name the signal and what it usually
+ * means, because that is the only clue the operator gets.
+ */
+const SIGNAL_CAUSE: Record<string, string> = {
+  SIGKILL: 'ran out of memory, or was force-killed',
+  SIGTERM: 'the server stopped or restarted mid-render',
+  SIGINT: 'the server stopped or restarted mid-render',
+  SIGHUP: 'the terminal running the server closed',
+};
+
+export function describeExit(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  stderr: string,
+): string {
+  const detail = stderr.trim().slice(0, 500);
+
+  if (code === null) {
+    const cause = signal ? SIGNAL_CAUSE[signal] : undefined;
+    const killed = `ffmpeg was killed by ${signal ?? 'an unknown signal'}`;
+    return cause ? `${killed} — ${cause}` : killed;
+  }
+
+  return detail ? `ffmpeg exited ${code}: ${detail}` : `ffmpeg exited ${code}`;
+}
+
 export function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('ffmpeg', args);
@@ -41,10 +69,8 @@ export function runFfmpeg(args: string[]): Promise<void> {
     child.on('error', (error) =>
       reject(new Error(`ffmpeg failed to start: ${error.message}`)),
     );
-    child.on('close', (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`ffmpeg exited ${code}: ${stderr.trim().slice(0, 500)}`)),
+    child.on('close', (code, signal) =>
+      code === 0 ? resolve() : reject(new Error(describeExit(code, signal, stderr))),
     );
   });
 }
