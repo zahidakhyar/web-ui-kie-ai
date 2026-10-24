@@ -2,6 +2,8 @@
 
 [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/web-ui-kie-ai)
 
+> **Unofficial project.** This is an independent open-source client for the KIE.ai API. It is not affiliated with, endorsed by, or maintained by KIE.ai.
+
 Personal AI generation web app powered by [KIE.ai](https://kie.ai): text-to-image, image upscaling, and a music → mix → video pipeline. Everything it produces is stored in your own Cloudflare R2 bucket.
 
 ## Features
@@ -171,6 +173,10 @@ components/
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Disclaimer
+
+You are responsible for complying with the terms of service of KIE.ai and of the model providers behind it (such as Suno, Veo, and SeeDream), including the usage rights for any content you generate.
 
 ## License
 
